@@ -123,22 +123,7 @@ class Select_Rule(Select):
 
 
 if __name__ == '__main__':
-    LaSelectFacet=Select_Facet()
-
-    CheminFichier="/home/jocelin/Documents/200 - IFC/Model_IFC/PN1801_17_EXE_MOD_000177_01_H_0810P_GEN_2x3-Finale.ifc"
-
-    LaSelectFacet.list_ifc_path=[CheminFichier]
-
-
-
-    LaEntite=Entity()
-    LaEntite.name="IfcSpace"
-
-    LaSelectFacet.applicability=[LaEntite]
-
-    LaSelectFacet.Run()
-
-    print(LaSelectFacet.elements)
+    pass
 
 
 
