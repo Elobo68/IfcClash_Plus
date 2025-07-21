@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="VcsDirectoryMappings">
+    <mapping directory="$PROJECT_DIR$/.." vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/IfcOpenShell" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/IfcOpenShell/src/ifcconvert/cityjson" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/IfcOpenShell/src/ifcconvert/cityjson/IfcOpenShell" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/IfcOpenShell/src/ifcconvert/cityjson/IfcOpenShell/src/ifcopenshell-python/ifcopenshell/mvd" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/IfcOpenShell/src/ifcconvert/cityjson/IfcOpenShell/test/input" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/IfcOpenShell/src/ifcopenshell-python/ifcopenshell/mvd" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/IfcOpenShell/src/ifcopenshell-python/ifcopenshell/simple_spf" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/IfcOpenShell/src/ifcopenshell-python/test/Sample-BIM-Files" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/IfcOpenShell/src/pyodide/demo-app/wheels" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/IfcOpenShell/src/svgfill" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/IfcOpenShell/src/svgfill/3rdparty/svgpp" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/IfcOpenShell/test/input" vcs="Git" />
+  </component>
+</project>
