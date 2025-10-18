@@ -18,6 +18,7 @@ It will first detect, on each object, the face that will be anaylzed. The latera
 - The faces must be the highest, or lower, point of the geometry.
 	- The faces of an holes point to the top but aren't the highest point of the geometry.
 
+<<<<<<< HEAD
 Then it will check the distance between all the faces.
 =======
 
