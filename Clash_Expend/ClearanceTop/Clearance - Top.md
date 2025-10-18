@@ -28,6 +28,7 @@ Type:
 
 
 Min : If the faces of object B is higher than min, it will raise a clash.
+
 Max : if the faces of object B is lower than Max, it will raise a clash.
 
 Lateral_Tolerance: 
