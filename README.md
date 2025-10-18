@@ -17,6 +17,7 @@ I will do a sheet for every rule to describe the way it's working.
 * Same Oriented Object
 
 Right now, i am working in python but i intend to replicate the logic in C++.
+It must give me all the edge case.
 
 # POC
 I have made a first POC to test a new template to describe and launch Clash.
