@@ -1,10 +1,3 @@
----
-Synthese: Permet de vérifier si rien n'est au dessus d'un objet
-2 Objects Rules: true
-Must X: true
-IsRule: true
-Priority: 1
----
 # Description
 
 This rule aims to detect objects that are on top of each other. 
@@ -19,7 +12,8 @@ It will first detect, on each object, the face that will be anaylzed.
 The rule will detect the two faces of the object. Those two faces will be analyze in order to detect if they are in or out.
 
 
-[[Clash_Top.jpg]]
+![alt text](Clash_Top.jpg)
+
 
 
 # Property
