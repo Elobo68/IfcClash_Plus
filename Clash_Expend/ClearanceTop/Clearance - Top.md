@@ -33,6 +33,7 @@ Max : if the faces of object B is lower than Max, it will raise a clash.
 Lateral_Tolerance: 
 By default 0, the lateral tolerance aims to detect that the B object may be offset. 
 If the value is negative, it can enforce that the B object is under A object.
+
 ![Image1](image_Page3.png)
 
 # Result
