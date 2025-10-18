@@ -19,7 +19,7 @@ It will first detect, on each object, the face that will be anaylzed.
 The rule will detect the two faces of the object. Those two faces will be analyze in order to detect if they are in or out.
 
 
-![[Clash_Top.jpg]]
+[Clash_Top.jpg]
 
 
 # Property
