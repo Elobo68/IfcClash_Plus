@@ -10,11 +10,11 @@ The first 4 rules can be expended with other to complete them. With some basics 
 
 # New Rule
 I will do a sheet for every rule to describe the way it's working.
--Clearance Above Object (and Below)
--Clearance Next To Object
--Direct Ray with Object
--Parralel Object
--Oriented Object
+* Clearance Above Object (and Below)
+* Clearance Next To Object
+* Direct Ray with Object
+* Parralel Object
+* Same Oriented Object
 
 Right now, i am working in python but i intend to replicate the logic in C++
 
