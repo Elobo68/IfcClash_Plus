@@ -16,14 +16,14 @@ I will do a sheet for every rule to describe the way it's working.
 * Parralel Object
 * Same Oriented Object
 
-Right now, i am working in python but i intend to replicate the logic in C++
+Right now, i am working in python but i intend to replicate the logic in C++.
 
 # POC
 I have made a first POC to test a new template to describe and launch Clash.
--Selecting objects from several model
--Result of clash can be used as entry set for other rule
--Re-use facet of IDS to select objects based on object data
+* Selecting objects from several model
+* Result of clash can be used as entry set for other rule
+* Re-use facet of IDS to select objects based on object data
 
+The POC is over. 
 The idea now is to create robust rule, to expand number of rule without changing the template.
-Those rule can fit any template.
-
+Those rule could be used in any template.
