@@ -124,6 +124,9 @@ class Select_Rule(Select):
 
 if __name__ == '__main__':
     pass
+<<<<<<< Updated upstream
 
 
+=======
+>>>>>>> Stashed changes
 
