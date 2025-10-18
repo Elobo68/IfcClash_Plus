@@ -24,6 +24,10 @@ I have made a first POC to test a new template to describe and launch Clash.
 * Result of clash can be used as entry set for other rule
 * Re-use facet of IDS to select objects based on object data
 
+Here you can find some explanation of the POC.
+[https://github.com/IfcOpenShell/IfcOpenShell/discussions/6863]
+
 The POC is over. 
 The idea now is to create robust rule, to expand number of rule without changing the template.
 Those rule could be used in any template.
+
