@@ -10,7 +10,7 @@ The first 4 rules can be expended with other to complete them. With some basics 
 
 # New Rule
 I will do a sheet for every rule to describe the way it's working.
-* Clearance Above Object (and Below) ![LinkToTop](Clash_Expend/ClearanceTop/Clearance - Top.md)
+* ![Clearance Above Object](https://github.com/Elobo68/IfcClash_Plus/blob/main/Clash_Expend/ClearanceTop/Clearance%20-%20Top.md) (and Below)
 * Clearance Next To Object
 * Direct Ray with Object
 * Parralel Object
