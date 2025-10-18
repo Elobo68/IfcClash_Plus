@@ -2,7 +2,8 @@
 
 This rule aims to detect objects that are on top of each other. 
 
-![[image_Page 1.png]]
+!(image_Page 1.png)
+
 It will first detect, on each object, the face that will be anaylzed. The lateral tolerance may be use to consider more face than the one directly above.
 - All faces must point to the top, or bottom.
 - The faces must be the highest, or lower, point of the geometry.
