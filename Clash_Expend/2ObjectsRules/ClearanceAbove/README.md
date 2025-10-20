@@ -2,7 +2,7 @@
 
 This rule aims to detect objects that are on top of each other. 
 
-![Image1](image_Page1.png)
+![Image1](image/image_Page1.png)
 
 It will first detect, on each object, the face that will be anaylzed. The lateral tolerance may be use to consider more face than the one directly above.
 - All faces must point to the top, or bottom.
@@ -16,6 +16,7 @@ The rule will detect the two faces of the object. Those two faces will be analyz
 
 # Property
 A: Object A
+
 B: Object B
 
 Type: 
@@ -24,7 +25,7 @@ Type:
 - MaxToMin : The highest part of A will be collided with the lowest part of B.
 - MaxToMax : The highest part of A will be collided with the highest part of B.
 
-![Image1](image_Page2.png)
+![Image1](image/image_Page2.png)
 
 
 Min : If the faces of object B is higher than min, it will raise a clash.
@@ -35,7 +36,7 @@ Lateral_Tolerance:
 By default 0, the lateral tolerance aims to detect that the B object may be offset. 
 If the value is negative, it can enforce that the B object is under A object.
 
-![Image1](image_Page3.png)
+![Image1](image/image_Page3.png)
 
 # Result
 
