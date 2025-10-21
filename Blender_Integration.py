@@ -1,24 +1,27 @@
 import bpy
-import sys
 import ifcopenshell
+import ifcopenshell.util.shape
 import numpy as np
 import sys
+import ifcopenshell.util.selector
 
-def CreationTriangle(Face):
+def CreationTriangle(Face,Color=None):
+    print(Face)
     mesh = bpy.data.meshes.new('Triforce')
-    mesh.from_pydata(
-        [Face],  # vertices
-        [],  # edges are inferred from face
-        [(0, 1, 2)]  # face
-    )
+    mesh.from_pydata(vertices=Face,edges=[],faces=[(1,0,2)])
 
     triangle = bpy.data.objects.new(mesh.name, mesh)
+
+
+    if not Color is None:
+        triangle.active_material = Color
+
     coll = bpy.data.scenes['Scene'].collection
     coll.objects.link(triangle)
 
 
 def Get_Verts(IfcOpenShell_Object):
-    settings = ifcopenshell.geom.settings(USE_WORLD_COORDS=True)
+    settings = ifcopenshell.geom.settings(USE_WORLD_COORDS=False)
     # settings.set("use-python-opencascade", True)
     shape = ifcopenshell.geom.create_shape(settings, IfcOpenShell_Object)
     grouped = ifcopenshell.util.shape.get_vertices(shape.geometry)
@@ -26,7 +29,7 @@ def Get_Verts(IfcOpenShell_Object):
 
 
 def Get_Faces(IfcOpenShell_Object):
-    settings = ifcopenshell.geom.settings(USE_WORLD_COORDS=True)
+    settings = ifcopenshell.geom.settings(USE_WORLD_COORDS=False)
     shape = ifcopenshell.geom.create_shape(settings, IfcOpenShell_Object)
     grouped = ifcopenshell.util.shape.get_faces(shape.geometry)
     return grouped
@@ -149,48 +152,54 @@ def angle_between(v1, v2):
 
 
 def Read_IFC_Model():
-   file=ifcopenshell.open("Ifc_Model/Ifc2x3_Duplex_Architecture.ifc")
+    file=ifcopenshell.open("Ifc_Model/Ifc2x3_Duplex_Architecture.ifc")
 
-   walls=file.by_type("IfcWall")
-   wall=walls[0]
+    Element_a = next(iter(ifcopenshell.util.selector.filter_elements(file, "IfcWall, Name=foo")))
 
-   Faces=Get_Faces(wall)
-   Verts=Get_Verts(wall)
-   
 
-   for face in Faces:
-      print("La face",face)
-      FaceToPrint=list()
-      for count,OneVertPointer in enumerate(face):
-         Point=Faces[OneVertPointer].tolist()
-         FaceToPrint.append(Point)
+    matg = bpy.data.materials.new("Green")
+    matg.use_nodes = True
+    tree = matg.node_tree
+    nodes = tree.nodes
+    bsdf = nodes["Principled BSDF"]
+    bsdf.inputs["Base Color"].default_value = (0, 1, 0, 0.8)
+    matg.diffuse_color = (0, 1, 0, 0.8)
+    
 
-      CreationTriangle(FaceToPrint)
+
+    Faces=Get_Faces(Element_a)
+    Verts=Get_Verts(Element_a)
+    Norms=Get_Norms(Element_a)
+    print(Norms)
+    for face in Faces:
+        FaceToPrint=list()
+        for count,OneVertPointer in enumerate(face):
+            print(count,OneVertPointer)
+            Point=Verts[OneVertPointer].tolist()
+            print("LePoint",Point)
+            Point=tuple(Point)
+            FaceToPrint.append(Point)
+        CreationTriangle(FaceToPrint,matg)
 
 
 def CreateBaseTriangle():
-    List1=[0,0,0]
-    List2=[0,1,0]
-    List3=[1,0,0]
+    List1=(0,0,0)
+    List2=(0,1,0)
+    List3=(1,0,0)
     FaceToPrint=[List1,List2,List3]
+    print(FaceToPrint)
     CreationTriangle(FaceToPrint)
 
-def GetListOfObjets():
-   sys.exit = None
-   LesObjets=bpy.data.objects
-   print(LesObjets)
-    
 
 
 if __name__ == "__main__":
    print("Hello World: run from Blender Text Editor")
-   GetListOfObjets()
-
-   
-   
 else:
    print("Hello World: run from VSCode")
    print(f"NOTE. __name__ is : {__name__}")
+
+
+Read_IFC_Model()
 
 
 
