@@ -21,29 +21,29 @@ The first step is to create new rule to expand possibilities. Those rule can be 
 I will do a sheet for every rule to describe the way it's working and the intended result of that rule.
 
 This is my starting point.
-![Clearance Above Object](Clash_Expend/2ObjectsRules/ClearanceAbove)
+[Clearance Above Object](Clash_Expend/2ObjectsRules/ClearanceAbove)
 
 ## Two Object Rule
-* ![Clearance Above Object](Clash_Expend/2ObjectsRules/ClearanceAbove)
-* ![Clearance Next To Object](Clash_Expend/2ObjectsRules/ClearanceNextTo)
-* ![Clearance Below Object](Clash_Expend/2ObjectsRules/ClearanceBelow)
-* ![Cleareance In Front Of](Clash_Expend/2ObjectsRules/ClearanceInFrontOf)
-* ![Direct View](Clash_Expend/2ObjectsRules/DirectView)
-* ![Face Check](Clash_Expend/2ObjectsRules/FaceCheck)
-* ![Angle Between](Clash_Expend/2ObjectsRules/AngleBetween)
-* ![Surface Recover](Clash_Expend/2ObjectsRules/SurfaceRecover)
+* [Clearance Above Object](Clash_Expend/2ObjectsRules/ClearanceAbove)
+* [Clearance Next To Object](Clash_Expend/2ObjectsRules/ClearanceNextTo)
+* [Clearance Below Object](Clash_Expend/2ObjectsRules/ClearanceBelow)
+* [Cleareance In Front Of](Clash_Expend/2ObjectsRules/ClearanceInFrontOf)
+* [Direct View](Clash_Expend/2ObjectsRules/DirectView)
+* [Face Check](Clash_Expend/2ObjectsRules/FaceCheck)
+* [Angle Between](Clash_Expend/2ObjectsRules/AngleBetween)
+* [Surface Recover](Clash_Expend/2ObjectsRules/SurfaceRecover)
 
 
 ## One Object Rule
-* ![Volume TODO](Clash_Expend/1ObjectsRules/Orientation)
-* ![Orientation TODO](Clash_Expend/1ObjectsRules/Orientation)
+* [Volume](Clash_Expend/1ObjectsRules/Orientation)
+* [Orientation](Clash_Expend/1ObjectsRules/Orientation)
 
 
 ## Complex Rule
-* ![Free Space in Room](Clash_Expend/1ObjectsRules/Orientation)
-* ![Find Path](Clash_Expend/ComplexRules/FindPath)
-* ![EvacuationDistance](Clash_Expend/ComplexRules/EvacuationDistance)
-* ![Alignement](Clash_Expend/ComplexRules/Alignement)
+* [Free Space in Room](Clash_Expend/1ObjectsRules/Orientation)
+* [Find Path](Clash_Expend/ComplexRules/FindPath)
+* [EvacuationDistance](Clash_Expend/ComplexRules/EvacuationDistance)
+* [Alignement](Clash_Expend/ComplexRules/Alignement)
 
 
 Right now, i am working in python but i intend to replicate the logic in C++.
