@@ -21,7 +21,7 @@ The first step is to create new rule to expand possibilities. Those rule can be 
 I will do a sheet for every rule to describe the way it's working and the intended result of that rule.
 
 This is my starting point.
-![Clearance Above Object](Clash_Expend/2ObjectsRules/ClearanceAbove)
+![Clearance Above Object](Clash_Expend/2ObjectsRules/ClearanceAbove/README.md)
 
 ## Two Object Rule
 * ![Clearance Above Object](Clash_Expend/2ObjectsRules/ClearanceAbove)
