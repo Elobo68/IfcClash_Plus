@@ -73,8 +73,6 @@ class Select_Facet(Select):
             self.elements=self.elements+self.dict_elements[ifc_file]
         """
 
-
-
 class Select_Rule(Select):
     def __init__(self):
         super().__init__()
@@ -124,9 +122,6 @@ class Select_Rule(Select):
 
 if __name__ == '__main__':
     pass
-<<<<<<< Updated upstream
 
 
-=======
->>>>>>> Stashed changes
 

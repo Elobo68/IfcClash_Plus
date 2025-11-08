@@ -39,6 +39,16 @@ The object must be oriented to the south.
 These rules are the most common one. They will take the form A vs B.
 
 
+
+## Two Faces Rules
+WORK IN PROGRESS
+This rule work on a face level. It can restrict rule application to certains cases.
+If the Object Rule find a relevant face, i can still pass it threw Faces Rule to check if the restriction is OK.
+I need to pass the faces with the result.
+
+
+
+
 ### Example
 The table is below the light.
 The wall is at one meter of a chair
