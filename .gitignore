@@ -4,3 +4,5 @@
 .obsidian/backlink.json
 .obsidian/core-plugins.json
 .obsidian/workspace.json
+src/__pycache__/RuleComponent.cpython-312.pyc
+src/__pycache__/RuleClass.cpython-312.pyc
