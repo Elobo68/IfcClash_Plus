@@ -11,6 +11,7 @@ import numpy as np
 from shapely.geometry import Polygon, Point
 import bpy
 from Clash_Expend.Rule_Utils import Get_Verts,Get_Faces,Get_Norms,Get_Max_Z,Get_Min_Z,angle_between,Ugly_MinimalDistance_faces,CreationTriangle
+import ifcopenshell.util.element
 
 
 def faces_share_surface_shapely(faceA,FaceB):

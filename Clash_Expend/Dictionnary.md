@@ -1,5 +1,6 @@
 
-The idea would be to combine those possibility in order to create a bunch a new role.
+The idea would be to combine those possibility in order to create a bunch a new rule.
+
 
 
 
@@ -39,6 +40,23 @@ The object A does not cover at all object B.
 ## Center
 ## Bottom
 ## Sides
+
+# OOBB
+For the bouding box, we can define prefined word. 
+
+## Sides Face
+For the side faces, we can define. We will always look at the face by the normals. The right and left will be dependant on the normals direction.
+Top and bottom is obvious.
+
+## Top and Bottom Face
+This selection is more complexe because we need to determine the front and the back.
+Front
+Back
+Left : Determine by the Front
+Right : Determine by the Front
+
+If the parameters are equals, it doesn't matter to know the front.
+
 
 
 
