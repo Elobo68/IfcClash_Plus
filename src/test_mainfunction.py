@@ -3,6 +3,7 @@ from RuleClass import SelectFacet,SelectRule
 from Rules import Volume, Area, TopSurface,Intersection
 from ifctester import ids
 from ifcopenshell import file
+import ifcopenshell
 
 
 def Test_Folder():
@@ -121,7 +122,7 @@ def IntersectionCheck():
 
     rulevolume = Intersection(Window_Select, Wall_Select,0.1)
 
-    exception_rule = Intersection(None,None,1)
+    exception_rule = Intersection(None,None,0.01)
     select_rule=SelectRule()
     select_rule.rule=exception_rule
 
@@ -129,8 +130,39 @@ def IntersectionCheck():
     rulevolume.select_exception=[select_rule]
     rulevolume.run()
 
-    for result in rulevolume.result:
-        print(result.source,result.target)
+def ExceptionMakinProcess():
+    from RuleClass import Select
+    Chemin = "Ifc_Model/Ifc2x3_Duplex_Architecture.ifc"
+    ifc_file=ifcopenshell.open(Chemin)
+
+    ifc_window=ifc_file.by_guid("1hOSvn6df7F8_7GcBWlS_W")
+    ifc_wall=ifc_file.by_guid("2O2Fr$t4X7Zf8NOew3FLOH")
+
+
+
+    exception_rule = Intersection(None,None,0.01)
+
+    exception_rule.select_source=Select()
+    exception_rule.select_source.dict_elements={ifc_wall.file:[ifc_wall]}
+    exception_rule.select_source.list_ifc_file=[ifc_wall.file]
+    exception_rule.select_target=Select()
+    exception_rule.select_target.dict_elements={ifc_window.file:[ifc_window]}
+    exception_rule.select_target.list_ifc_file=[ifc_window.file]
+
+    Resultat=exception_rule.run()
+
+    for key,value in exception_rule.__dict__.items():
+        print(key,value)
+
+    print("Les Resulstas")
+    print(exception_rule.result[0].__dict__)
+
+
+    
+
+
+
+
 
 
 def OneElement():

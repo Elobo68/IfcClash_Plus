@@ -24,6 +24,7 @@ from ifcclash.ifcclash import ClashSource
 import multiprocessing
 import numpy as np
 import ifcopenshell.util.placement
+from copy import deepcopy,copy
 
 
 class RuleFile:
@@ -377,34 +378,27 @@ class RuleCheckTwoObjects(RuleCheck):
         print("TODO ACTOR")
 
     def run_exception(self):
-        list_of_result=self.result #Poor choice of script, i have somewhere that run in a loop.
+        import Rules
+
+        list_of_result=self.result.copy() #Poor choice of script, i have somewhere that run in a loop. I need to copy it otherwise it turn in a loop. 
         print(len(list_of_result))
-        for exception_rule in self.select_exception:
 
-            
-            for result in list_of_result:
 
-                #i have a loop that is looping on itself.
+        #Vu que j'ai deux instances de Intersection, j'ai l'impression qu'il mutualise les self.result. En corrigeant la 
 
-                exception_rule.rule.select_source=Select()
-                exception_rule.rule.select_source.dict_elements={result.source.file:[result.source]}
-                exception_rule.rule.select_source.list_ifc_file=[result.source.file]
-                exception_rule.rule.select_target=Select()
-                exception_rule.rule.select_target.dict_elements={result.target.file:[result.target]}
-                exception_rule.rule.select_target.list_ifc_file=[result.target.file]
+
+        for one_rule_result in list_of_result:
+            for exception_rule in self.select_exception:
+                exception_rule.rule.select_source=one_rule_result.source
+                exception_rule.rule.select_target=one_rule_result.target
+                #it's the old way to do it, like in the run(state=Final), but i had an infinte loop somewhere
+                #exception_rule.rule.select_source.dict_elements={result.source.file:[result.source]}
+                #exception_rule.rule.select_source.list_ifc_file=[result.source.file]
+                
                 exception_rule.rule.run(state="Exception")
 
-                print("End of one exception",exception_rule.rule.result)
-
-                if exception_rule.rule.result[0].status:
-                    continue
-                else:
-                    self.result.state=False
                 
-
-
-
-
+                
 
 
     def run_must(self):

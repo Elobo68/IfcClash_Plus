@@ -148,28 +148,32 @@ class Intersection(RuleCheckTwoObjects):
     def run(self,state="Final"):
         self.tree = ifcopenshell.geom.tree()
 
-
-        self.select_source.run()
-        self.select_target.run()
-
-        self.add_to_tree(self.select_source,"BVH")
-        self.add_to_tree(self.select_target,"BVH")
-
         source_elements=[]
         target_elements=[]
 
-        #make something better
-        for file in self.select_source.dict_elements.keys():
-            list=self.select_source.dict_elements[file]
-            for element in list:
-                source_elements.append(element)
+
+        if state=="Final":
+            self.select_source.run()
+            self.select_target.run()
+            self.add_to_tree(self.select_source,"BVH")
+            self.add_to_tree(self.select_target,"BVH")
+
+            for file in self.select_source.dict_elements.keys():
+                list=self.select_source.dict_elements[file]
+                for element in list:
+                    source_elements.append(element)
 
 
-        for file in self.select_target.dict_elements.keys():
-            list=self.select_target.dict_elements[file]
-            for element in list:
-                target_elements.append(element)
+            for file in self.select_target.dict_elements.keys():
+                list=self.select_target.dict_elements[file]
+                for element in list:
+                    target_elements.append(element)
 
+        if state=="Exception":
+            self.add_OneObject_to_tree(self.select_source,"BVH")
+            self.add_OneObject_to_tree(self.select_target,"BVH")
+            source_elements.append(self.select_source)
+            target_elements.append(self.select_target)
 
 
         temp_result= self.tree.clash_intersection_many(
@@ -178,6 +182,9 @@ class Intersection(RuleCheckTwoObjects):
             tolerance=self.tolerance,
             check_all=True,
         )
+
+        list_result=[] #I need to do that to avoid reusing the same result result in the different intersection.
+
 
         #@todo make a proper integration, how to deal with extra data ? (Point of entry, distance, etc...)
         for result in temp_result:
@@ -188,11 +195,14 @@ class Intersection(RuleCheckTwoObjects):
             target_object=target_file.by_id(result.b.id_)
 
 
-            self.result.append(ClashResultTwoObjects(source=source_object,target=target_object,state=True))
+            list_result.append(ClashResultTwoObjects(source=source_object,target=target_object,state=True))
+
+        self.result=list_result
 
         if state=="Final":       
             self.manage_result()
-        else:
+        
+        if state=="Select":       
             self.produce_select()
 
         
