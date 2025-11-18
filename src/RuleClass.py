@@ -381,13 +381,13 @@ class RuleCheckTwoObjects(RuleCheck):
         import Rules
 
         list_of_result=self.result.copy() #Poor choice of script, i have somewhere that run in a loop. I need to copy it otherwise it turn in a loop. 
-        print(len(list_of_result))
 
 
         #Vu que j'ai deux instances de Intersection, j'ai l'impression qu'il mutualise les self.result. En corrigeant la 
 
 
-        for one_rule_result in list_of_result:
+        for one_rule_result in self.result:
+            print(one_rule_result.source.Name)
             for exception_rule in self.select_exception:
                 exception_rule.rule.select_source=one_rule_result.source
                 exception_rule.rule.select_target=one_rule_result.target
@@ -397,7 +397,13 @@ class RuleCheckTwoObjects(RuleCheck):
                 
                 exception_rule.rule.run(state="Exception")
 
-                
+
+                print("Terminer ici")
+
+                if exception_rule.rule.result[0].status:
+                    continue
+                else:
+                    self.result.state=False
                 
 
 
