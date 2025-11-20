@@ -64,7 +64,6 @@ def Grouping_Test():
     for x in rulevolume.result:
         print(x.source_group, x.source)
 
-
 def Actor_And_Criticity_Test():
     Chemin = "Ifc_Model/Ifc2x3_Duplex_Architecture.ifc"
 
@@ -92,7 +91,6 @@ def Actor_And_Criticity_Test():
     for x in rulevolume.result:
         print(x.source_group, x.status, x.actor, x.criticity, x.source)
 
-
 def Top_Surface():
     Chemin = "Ifc_Model/Ifc2x3_Duplex_Architecture.ifc"
 
@@ -107,7 +105,6 @@ def Top_Surface():
 
     rulevolume.run()
 
-
 def IntersectionCheck():
     Chemin = "Ifc_Model/Ifc2x3_Duplex_Architecture.ifc"
     Wall_Select = SelectFacet()
@@ -120,9 +117,9 @@ def IntersectionCheck():
     Window_Select.applicability = [Window_Facet]
     Window_Select.list_ifc_path = [Chemin]
 
-    rulevolume = Intersection(Window_Select, Wall_Select,0.1)
+    rulevolume = Intersection(Window_Select, Wall_Select,0.01)
 
-    exception_rule = Intersection(None,None,0.01)
+    exception_rule = Intersection(None,None,0.1)
     select_rule=SelectRule()
     select_rule.rule=exception_rule
 
@@ -156,11 +153,6 @@ def ExceptionMakinProcess():
 
     print("Les Resulstas")
     print(exception_rule.result[0].__dict__)
-
-
-    
-
-
 
 
 

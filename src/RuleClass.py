@@ -24,7 +24,7 @@ from ifcclash.ifcclash import ClashSource
 import multiprocessing
 import numpy as np
 import ifcopenshell.util.placement
-from copy import deepcopy,copy
+from copy import deepcopy, copy
 
 
 class RuleFile:
@@ -121,36 +121,20 @@ class SelectRule(Select):
         # 3 - Select target in the list
         # 4 - Select target not in the list
 
-    def run(self,state="Select"):
+    def run(self, state="Select"):
         self.rule.run(state)
-        self.dict_elements = self.rule.produce_select()
+        self.produce_select()
 
     def produce_select(self):
-        print("Remake this whole function, not working")
-        for result in self.rule.results:
-            Entity_A = result.a
-            GUID_Entity_A = Entity_A.get_argument(
-                0
-            )  # There must be a clean way to do that. From the result of the clash, i want to update the select elements.
-
-            for OneElement in self.rule.Select_Source.elements:
-                if OneElement.GlobalId == GUID_Entity_A:
-                    if OneElement.file in self.dict_elements:
-                        self.dict_elements[OneElement.file].append(OneElement)
-                    else:
-                        self.dict_elements[OneElement.file] = [OneElement]
-
-            Entity_b = result.b
-            GUID_Entity_b = Entity_b.get_argument(
-                0
-            )  # There must be a clean way to do that
-
-            for OneElement in self.rule.Select_Source.elements:
-                if OneElement.GlobalId == GUID_Entity_b:
-                    if OneElement.file in self.dict_elements:
-                        self.dict_elements[OneElement.file].append(OneElement)
-                    else:
-                        self.dict_elements[OneElement.file] = [OneElement]
+        self.dict_elements = {}
+        for result in self.rule.result:
+            if result.source.file in self.dict_elements.keys():
+                if self.dict_elements[result.source.file] is None:
+                    self.dict_elements[result.source.file] = [result.source]
+                else:
+                    self.dict_elements[result.source.file].append(result.source)
+            else:
+                self.dict_elements[result.source.file] = [result.source]
 
 
 @abstractmethod
@@ -160,7 +144,7 @@ class RuleCheck:
 
     tree: list = None  # @todo Determine the exact
 
-    result: list[ClashResult] = []  
+    result: list[ClashResult] = []
 
     # Those select are used only if the rule is the last one.
     select_source: Select = None
@@ -169,7 +153,6 @@ class RuleCheck:
     select_actor: list[Select] = []
 
     def add_to_tree(self, Select, type_of_tree):
-
         for ifc_file in Select.dict_elements.keys():
             iterator = ifcopenshell.geom.iterator(
                 self.geom_settings,
@@ -210,8 +193,6 @@ class RuleCheck:
 
     def to_bcf():
         print("Reuse Ifcopenshell")
-
-
 
 
 class RuleCheckOneObject(RuleCheck):
@@ -326,16 +307,19 @@ class RuleCheckOneObject(RuleCheck):
         self.run_criticity()
         self.run_actor()
 
+
 class RuleCheckTwoObjects(RuleCheck):
     def __init__(self):
         super().__init__()
         self.select_target: Select = None
         self.select_focus_filter: Select = None
         self.select_exception: list[SelectRule] = []
-        self.select_must_rule: str = None  # @todo Create the must rule for the Two Objects
+        self.select_must_rule: str = (
+            None  # @todo Create the must rule for the Two Objects
+        )
 
     def produce_select(self):
-        #@todo pass the fail or success element, 
+        # @todo pass the fail or success element,
         dict_return = {}
         for oneresult in self.result:
             if oneresult.status:  # we gave back the True value of result.
@@ -378,34 +362,22 @@ class RuleCheckTwoObjects(RuleCheck):
         print("TODO ACTOR")
 
     def run_exception(self):
-        import Rules
-
-        list_of_result=self.result.copy() #Poor choice of script, i have somewhere that run in a loop. I need to copy it otherwise it turn in a loop. 
-
-
-        #Vu que j'ai deux instances de Intersection, j'ai l'impression qu'il mutualise les self.result. En corrigeant la 
-
-
         for one_rule_result in self.result:
-            print(one_rule_result.source.Name)
             for exception_rule in self.select_exception:
-                exception_rule.rule.select_source=one_rule_result.source
-                exception_rule.rule.select_target=one_rule_result.target
-                #it's the old way to do it, like in the run(state=Final), but i had an infinte loop somewhere
-                #exception_rule.rule.select_source.dict_elements={result.source.file:[result.source]}
-                #exception_rule.rule.select_source.list_ifc_file=[result.source.file]
-                
+                exception_rule.rule.select_source = one_rule_result.source
+                exception_rule.rule.select_target = one_rule_result.target
+
                 exception_rule.rule.run(state="Exception")
 
-
-                print("Terminer ici")
-
-                if exception_rule.rule.result[0].status:
-                    continue
+                if exception_rule.rule.result == []:
+                    one_rule_result.state = False
+                    break
                 else:
-                    self.result.state=False
-                
-
+                    if exception_rule.rule.result[0].status:
+                        continue
+                    else:
+                        one_rule_result.state = False
+                        break
 
     def run_must(self):
         print("TODO MUST")
@@ -416,6 +388,7 @@ class RuleCheckTwoObjects(RuleCheck):
         self.run_grouping()
         self.run_criticity()
         self.run_actor()
+
 
 class RuleCheckComplex(RuleCheck):
     def __init__(self):
@@ -445,10 +418,9 @@ class ClashResultOneObject(ClashResult):
 
 
 class ClashResultTwoObjects(ClashResult):
-    def __init__(self,source,target,state,type="SingleResult"):
-        super().__init__(source,state,type)
+    def __init__(self, source, target, state, type="SingleResult"):
+        super().__init__(source, state, type)
         self.target: ifcopenshell.entity_instance = target
-        
 
 
 class ClashResultComplex(ClashResult):
