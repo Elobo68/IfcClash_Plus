@@ -157,6 +157,7 @@ def ExceptionMakinProcess():
 
 
 
+
 def OneElement():
     Chemin = "Ifc_Model/Ifc2x3_Duplex_Architecture.ifc"
     import ifcopenshell

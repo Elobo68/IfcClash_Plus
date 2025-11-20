@@ -25,6 +25,7 @@ def get_extreme_faces(
     direction: Optional[VECTOR_3D] = None,
 ) -> list[VECTOR_3D]:
     
+    
 
     from ifcopenshell.util.shape import get_vertices,get_faces
 

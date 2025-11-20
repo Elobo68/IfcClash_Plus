@@ -78,6 +78,7 @@ def get_extreme_faces(
 
     polygons = [shapely.Polygon(vertices[face]) for face in filtered_faces]
     
+    
     #Find the average height of each face in order to check if it's highest or lowest.
     list_of_z_avg=[]
     for face in filtered_faces:

@@ -7,3 +7,6 @@
 src/__pycache__/RuleComponent.cpython-312.pyc
 src/__pycache__/RuleClass.cpython-312.pyc
 src/test_mainfunction.py
+src/test_mainfunction.py
+src/clash_utils.py
+src/Blender_Integration.py
