@@ -1,26 +1,42 @@
 # IfcClash_Plus
 This is a test to find the best solution before trying to implement directly into IfcClash.
-We have for type of rule that exist inside IfcClash.
+We have 4 type of rule that exist inside IfcClash.
 -Intersection
--Collision
+-Collision 
 -Clearance
--Ray Check
-The first 4 rules can be expended with other to complete them. With some basics rules, we could easily combine them to construct rule that fit exactly the issue. The idea is to create a lego set of rule.
+-Ray Check 
+The idea is to create a lego set of rule that can be used together.
 
 # Progress
 The first step is to create new rule to expand possibilities. Those rule can be used in any template.
 
-1. Expand number of rule
-2. Create them in python
-3. Create a C++ version
-4. Add rule in existing IfcClash
-5. Look for association of rules
+1. Expand number of rule and create the base structure for rules
+2. Create association of rule in python
+3. Studies implementation in ifcclash
+
+# Main functionality
+- Create a template to standardize rule creation
+    I want to create a catalog of rule. In order for them to work, i need a standardization of the functionality to expand them and make them work all together.
+- Use IDS to select
+    The idea is to reuse IDS Facet to select list of elements. I am pretty sure more and more people are starting to use it, so it will be easier for everyone with time.
+- Rule
+    The result of a rule will produce a list of object. This list of object can be used in another rule. This can be used to expand the rule functionnality, and complexity.
+- Authorize exception
+    There is edge case in every case. You can either select them by hand or reduce them. This aim to reduce the edge case to the bare minimum.
+- Categorize result
+    The BCF can carry information like actor, or criticity. Sometime, these can be done with a script.
+    - by actor
+    - by criticity
+- Regroup result by several way
+    I want to expand the way to regroup result of clash.
+- Group rule in folder
 
 
-# New Rule
+
+# Catalog of rule
 I will do a sheet for every rule to describe the way it's working and the intended result of that rule.
 
-This is my starting point.
+This is my starting point for a new rule.
 [Clearance Above Object](Clash_Expend/2ObjectsRules/ClearanceAbove)
 
 ## Two Object Rule
@@ -38,26 +54,9 @@ This is my starting point.
 * [Volume](Clash_Expend/1ObjectsRules/Orientation)
 * [Orientation](Clash_Expend/1ObjectsRules/Orientation)
 
-
 ## Complex Rule
 * [Free Space in Room](Clash_Expend/1ObjectsRules/Orientation)
 * [Find Path](Clash_Expend/ComplexRules/FindPath)
 * [EvacuationDistance](Clash_Expend/ComplexRules/EvacuationDistance)
 * [Alignement](Clash_Expend/ComplexRules/Alignement)
-
-
-Right now, i am working in python but i intend to replicate the logic in C++.
-It must give me all the edge case.
-
-# POC
-I have made a first POC to test a new template to describe and launch Clash.
-* Selecting objects from several model
-* Result of clash can be used as entry set for other rule
-* Re-use facet of IDS to select objects based on object data
-
-Here you can find some explanation of the POC.
-[https://github.com/IfcOpenShell/IfcOpenShell/discussions/6863]
-
-The POC is over. 
-
 
