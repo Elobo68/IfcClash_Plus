@@ -17,6 +17,9 @@ The first step is to create new rule to expand possibilities. Those rule can be 
 # Main functionality
 - Create a template to standardize rule creation
     I want to create a catalog of rule. In order for them to work, i need a standardization of the functionality to expand them and make them work all together.
+    
+    For the standardisation, i started a dictionnary to explain my vocabulary. 
+    [Vocabulary](Clash_Expend/Rule.md)
 - Use IDS to select
     The idea is to reuse IDS Facet to select list of elements. I am pretty sure more and more people are starting to use it, so it will be easier for everyone with time.
 - Rule
@@ -30,6 +33,7 @@ The first step is to create new rule to expand possibilities. Those rule can be 
 - Regroup result by several way
     I want to expand the way to regroup result of clash.
 - Group rule in folder
+
 
 
 
