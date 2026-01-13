@@ -139,18 +139,18 @@ class SelectRule(Select):
 
 @abstractmethod
 class RuleCheck:
-    id: str = None
-    type: str = None
+    def __init__(self,source):
+        self.id: str = None
+        self.type: str = None
 
-    tree: list = None  # @todo Determine the exact
+        self.tree: list = None  # @todo Determine the exact
 
-    result: list[ClashResult] = []
+        self.result: list[ClashResult] = []
 
-    # Those select are used only if the rule is the last one.
-    select_source: Select = None
-    select_grouping: SelectFacet = None
-    select_criticity: list[Select] = []
-    select_actor: list[Select] = []
+        self.select_source: Select = source
+        self.select_grouping: SelectFacet = None
+        self.select_criticity: list[Select] = []
+        self.select_actor: list[Select] = []
 
     def add_to_tree(self, Select, type_of_tree):
         for ifc_file in Select.dict_elements.keys():
@@ -309,14 +309,15 @@ class RuleCheckOneObject(RuleCheck):
 
 
 class RuleCheckTwoObjects(RuleCheck):
-    def __init__(self):
-        super().__init__()
-        self.select_target: Select = None
+    def __init__(self,source,target):
+        super().__init__(source)
+        self.select_target: Select = target
         self.select_focus_filter: Select = None
         self.select_exception: list[SelectRule] = []
         self.select_must_rule: str = (
             None  # @todo Create the must rule for the Two Objects
         )
+
 
     def produce_select(self):
         # @todo pass the fail or success element,

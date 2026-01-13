@@ -19,7 +19,7 @@ from ifcopenshell.util.shape import (
     get_footprint_area,
 )
 import clash_utils
-
+from typing import Optional, Literal, Union
 
 # ===========One Object Rule
 class Volume(RuleCheckOneObject):
@@ -162,12 +162,9 @@ class TopSurface(RuleCheckOneObject):
 # ====== Two Objects Rule
 class Intersection(RuleCheckTwoObjects):
     def __init__(self, source, target, tolerance=0.1):
-        super().__init__()
-
+        super().__init__(source,target)
         self.type = "Intersection"
         self.tolerance: float = tolerance
-        self.select_source = source
-        self.select_target = target
         self.geom_settings = ifcopenshell.geom.settings()
 
     def run(self, state="Final"):
@@ -241,11 +238,9 @@ class Intersection(RuleCheckTwoObjects):
 
 class Clearance(RuleCheckTwoObjects):
     def __init__(self, source, target, clearance=0.05):
-        super().__init__()
+        super().__init__(source,target)
 
         self.type = "Clearance"
-        self.select_source = source
-        self.select_target = target
         self.geom_settings = ifcopenshell.geom.settings()
         self.clearance: float = 0.05
         self.check_all: bool = False
@@ -313,10 +308,9 @@ class Clearance(RuleCheckTwoObjects):
 
 class Collision(RuleCheckTwoObjects):
     def __init__(self, source, target, tolerance=0):
+        super().__init__(source,target)
         self.type = "Collision"
         self.allow_touching = False
-        self.select_source = source
-        self.select_target = target
         self.geom_settings = ifcopenshell.geom.settings()
 
     def run(self, state="Final"):
@@ -338,10 +332,8 @@ class Collision(RuleCheckTwoObjects):
 
 class Ray_Check(RuleCheckTwoObjects):
     def __init__(self, source, target, context):
+        super().__init__(source,target)
         self.type = "RayCheck"
-
-        self.select_source = source
-        self.select_target = target
         self.Select_Context_Element = context
         self.length: float = 5.0
         self.geom_settings = ifcopenshell.geom.settings()
@@ -418,29 +410,96 @@ class Ray_Check(RuleCheckTwoObjects):
                 print("Error", Object)
                 return False
 
+ABOVE_TYPE = Literal["Above_MinToMax", "Above_MinToMin", "Above_MaxToMin","Above_MaxToMax"]
 
 class Above(RuleCheckTwoObjects):
-    def __init__(self, source, target, tolerance=0.1):
-        self.type = "Above"
+    def __init__(self, source, target,above_type:ABOVE_TYPE, tolerance=0.1):
+        super().__init__(source,target)
+        self.type = above_type
         self.tolerance: float = tolerance
-        self.select_source = source
-        self.select_target = target
         self.geom_settings = ifcopenshell.geom.settings()
+
 
     def run(self, state="Final"):
         self.tree = ifcopenshell.geom.tree()
         self.select_source.run()
         self.select_target.run()
 
-        self.add_to_tree(self.select_source, "BVH")
-        self.add_to_tree(self.select_target, "BVH")
+        #self.add_to_tree(self.select_source, "BVH")
+        #self.add_to_tree(self.select_target, "BVH")
 
-        self.results = self.tree.clash_intersection_many(
-            self.select_source.elements,
-            self.select_target.elements,
-            tolerance=self.tolerance,
-            check_all=True,
-        )
+        sources_faces = []
+        targets_faces = []
+
+
+        if "MinTo" in self.type:
+            source_direction=(0.0, 0.0, -1.0)
+        else:
+            source_direction=(0.0, 0.0, 1.0)
+        
+        if "ToMin" in self.type:
+            target_direction=(0.0, 0.0, -1.0)
+        else:
+            target_direction=(0.0, 0.0, 1.0)
+
+
+
+
+        for ifc_file in self.select_source.dict_elements.keys():
+            iterator = ifcopenshell.geom.iterator(
+                self.geom_settings,
+                ifc_file,
+                multiprocessing.cpu_count(),
+                include=self.select_source.dict_elements[ifc_file],
+            )
+
+            if iterator.initialize():
+                while True:
+                    shape = iterator.get()
+                    geom = shape.geometry
+                    extrem_faces = clash_utils.get_extreme_faces(geometry=geom,direction=source_direction)
+                    dict={"entity":ifc_file.by_id(shape.id),"face":extrem_faces}
+                    sources_faces.append(dict)
+
+                    if not iterator.next():
+                        break
+
+        for ifc_file in self.select_target.dict_elements.keys():
+            iterator = ifcopenshell.geom.iterator(
+                self.geom_settings,
+                ifc_file,
+                multiprocessing.cpu_count(),
+                include=self.select_target.dict_elements[ifc_file],
+            )
+
+            if iterator.initialize():
+                while True:
+                    shape = iterator.get()
+                    geom = shape.geometry
+                    extrem_faces = clash_utils.get_extreme_faces(geometry=geom,direction=target_direction)
+                    dict={"entity":ifc_file.by_id(shape.id),"face":extrem_faces}
+                    targets_faces.append(dict)
+
+                    if not iterator.next():
+                        break
+
+
+        print("Startintg to clash")
+        for source_faces in sources_faces:
+            print("The source face",source_faces)
+            for target_faces in targets_faces:
+                print("The target face",target_faces)
+
+
+
+
+
+
+        
+
+
+
+
 
         self.manage_result()
 
