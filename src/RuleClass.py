@@ -318,9 +318,8 @@ class RuleCheckTwoObjects(RuleCheck):
             None  # @todo Create the must rule for the Two Objects
         )
 
-
     def produce_select(self):
-        # @todo pass the fail or success element,
+        # @todo pass the fail or success element.
         dict_return = {}
         for oneresult in self.result:
             if oneresult.status:  # we gave back the True value of result.
@@ -338,29 +337,35 @@ class RuleCheckTwoObjects(RuleCheck):
 
         def grouping_by_property(self):
             print("TODO")
+            #@todo Grouping by property for 2 objects rules
             ...
 
         def grouping_by_attribute(self):
             print("TODO")
+            #@todo Grouping by attribute for 2 objects rules
             ...
 
         def grouping_by_part_of(self):
             print("TODO")
+            #@todo Grouping by part of for 2 objects rules
             ...
 
         def grouping_by_material(self):
             print("TODO")
+            #@todo Grouping by material for 2 objects rules
             ...
 
         def grouping_by_closeness(self):
             print("TODO")
-            ...  # reuse function of IfcClash
+            #@todo Grouping by closeness for 2 objects rules, reuse IfcClash
 
     def run_criticity(self):
-        print("TODO ACTOR")
+        print("TODO CRITICITY")
+        #@todo Make criticty for two objects
 
     def run_actor(self):
         print("TODO ACTOR")
+        #@todo Make actor for two objects rules
 
     def run_exception(self):
         for one_rule_result in self.result:
@@ -382,6 +387,7 @@ class RuleCheckTwoObjects(RuleCheck):
 
     def run_must(self):
         print("TODO MUST")
+        #@todo create the must for the two objects rules
 
     def manage_result(self):
         self.run_exception()
