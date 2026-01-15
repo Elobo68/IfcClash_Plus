@@ -1,24 +1,20 @@
 from RuleClass import (
     RuleCheckOneObject,
     RuleCheckTwoObjects,
-    SelectFacet,
     ClashResultOneObject,
     ClashResultTwoObjects,
-    SelectRule,
 )
 import ifcopenshell
-from ifctester import ids
 import multiprocessing
 from clash_utils import get_extreme_faces
 import shapely
 from ifcopenshell.util.shape import (
     get_vertices,
-    get_faces,
-    get_edges,
-    get_normals,
-    get_footprint_area,
 )
 import clash_utils
+import numpy as np
+from typing import Literal
+
 
 
 # ===========One Object Rule
@@ -162,12 +158,9 @@ class TopSurface(RuleCheckOneObject):
 # ====== Two Objects Rule
 class Intersection(RuleCheckTwoObjects):
     def __init__(self, source, target, tolerance=0.1):
-        super().__init__()
-
+        super().__init__(source, target)
         self.type = "Intersection"
         self.tolerance: float = tolerance
-        self.select_source = source
-        self.select_target = target
         self.geom_settings = ifcopenshell.geom.settings()
 
     def run(self, state="Final"):
@@ -241,11 +234,9 @@ class Intersection(RuleCheckTwoObjects):
 
 class Clearance(RuleCheckTwoObjects):
     def __init__(self, source, target, clearance=0.05):
-        super().__init__()
+        super().__init__(source, target)
 
         self.type = "Clearance"
-        self.select_source = source
-        self.select_target = target
         self.geom_settings = ifcopenshell.geom.settings()
         self.clearance: float = 0.05
         self.check_all: bool = False
@@ -313,10 +304,9 @@ class Clearance(RuleCheckTwoObjects):
 
 class Collision(RuleCheckTwoObjects):
     def __init__(self, source, target, tolerance=0):
+        super().__init__(source, target)
         self.type = "Collision"
         self.allow_touching = False
-        self.select_source = source
-        self.select_target = target
         self.geom_settings = ifcopenshell.geom.settings()
 
     def run(self, state="Final"):
@@ -327,21 +317,27 @@ class Collision(RuleCheckTwoObjects):
         self.add_to_tree(self.select_source, "BVH")
         self.add_to_tree(self.select_target, "BVH")
 
+
+
         self.results = self.tree.clash_collision_many(
             self.select_source.elements,
             self.select_target.elements,
             allow_touching=self.allow_touching,
         )
 
-        self.Result_Management(state)
+        #@todo create a real method to pass result for collission
+
+        if state == "Final":
+            self.manage_result()
+
+        if state == "Select":
+            self.produce_select()
 
 
 class Ray_Check(RuleCheckTwoObjects):
     def __init__(self, source, target, context):
+        super().__init__(source, target)
         self.type = "RayCheck"
-
-        self.select_source = source
-        self.select_target = target
         self.Select_Context_Element = context
         self.length: float = 5.0
         self.geom_settings = ifcopenshell.geom.settings()
@@ -419,30 +415,154 @@ class Ray_Check(RuleCheckTwoObjects):
                 return False
 
 
+ABOVE_TYPE = Literal[
+    "Above_MinToMax", "Above_MinToMin", "Above_MaxToMin", "Above_MaxToMax"
+]
+
 class Above(RuleCheckTwoObjects):
-    def __init__(self, source, target, tolerance=0.1):
-        self.type = "Above"
+    def __init__(self, source, target, above_type: ABOVE_TYPE, tolerance=0.1):
+        super().__init__(source, target)
+        self.type = above_type
         self.tolerance: float = tolerance
-        self.select_source = source
-        self.select_target = target
-        self.geom_settings = ifcopenshell.geom.settings()
+        self.geom_settings = ifcopenshell.geom.settings(USE_WORLD_COORDS=True)
 
     def run(self, state="Final"):
         self.tree = ifcopenshell.geom.tree()
         self.select_source.run()
         self.select_target.run()
 
-        self.add_to_tree(self.select_source, "BVH")
-        self.add_to_tree(self.select_target, "BVH")
 
-        self.results = self.tree.clash_intersection_many(
-            self.select_source.elements,
-            self.select_target.elements,
-            tolerance=self.tolerance,
-            check_all=True,
-        )
+        sources_faces = []
+        targets_faces = []
 
-        self.manage_result()
+        if "MinTo" in self.type:
+            source_direction = (0.0, 0.0, -1.0)
+        else:
+            source_direction = (0.0, 0.0, 1.0)
+
+        if "ToMin" in self.type:
+            target_direction = (0.0, 0.0, -1.0)
+        else:
+            target_direction = (0.0, 0.0, 1.0)
+
+        #Check the extrem face of the source
+        for ifc_file in self.select_source.dict_elements.keys():
+            iterator = ifcopenshell.geom.iterator(
+                self.geom_settings,
+                ifc_file,
+                multiprocessing.cpu_count(),
+                include=self.select_source.dict_elements[ifc_file],
+            )
+
+            if iterator.initialize():
+                while True:
+                    shape = iterator.get()
+                    geom = shape.geometry
+                    extrem_faces = clash_utils.get_extreme_faces(
+                        geometry=geom, direction=source_direction
+                    )
+                    vertices = get_vertices(geom)
+                    dict = {
+                        "entity": ifc_file.by_id(shape.id),
+                        "vertices": vertices,
+                        "extrem_faces": extrem_faces,
+                    }
+                    sources_faces.append(dict)
+
+                    if not iterator.next():
+                        break
+        
+        #Check the extrem face of the target
+        for ifc_file in self.select_target.dict_elements.keys():
+            iterator = ifcopenshell.geom.iterator(
+                self.geom_settings,
+                ifc_file,
+                multiprocessing.cpu_count(),
+                include=self.select_target.dict_elements[ifc_file],
+            )
+
+            if iterator.initialize():
+                while True:
+                    shape = iterator.get()
+                    geom = shape.geometry
+                    extrem_faces = clash_utils.get_extreme_faces(
+                        geometry=geom, direction=target_direction
+                    )
+                    vertices = get_vertices(geom)
+                    dict = {
+                        "entity": ifc_file.by_id(shape.id),
+                        "vertices": vertices,
+                        "extrem_faces": extrem_faces,
+                    }
+                    targets_faces.append(dict)
+
+                    if not iterator.next():
+                        break
+
+        list_result = []
+
+        #Check if part of extrem faces are close to each other
+        for source_faces in sources_faces:
+            for target_faces in targets_faces:
+                for source_face in source_faces["extrem_faces"]:
+                    s0 = source_faces["vertices"][source_face[0]]
+                    s1 = source_faces["vertices"][source_face[1]]
+                    s2 = source_faces["vertices"][source_face[2]]
+                    source_center = (s0 + s1 + s2) / 3
+                    s = [s0, s1, s2]
+
+                    min_distance_found = None
+                    selected_result = None
+
+                    for taget_face in target_faces["extrem_faces"]:
+                        t0 = target_faces["vertices"][taget_face[0]]
+                        t1 = target_faces["vertices"][taget_face[1]]
+                        t2 = target_faces["vertices"][taget_face[2]]
+                        target_center = (t0 + t1 + t2) / 3
+
+                        t = [t0, t1, t2]
+
+                        dist = clash_utils.min_distance_two_faces(s, t)
+
+                        # The target face must be above the source.
+                        check_above = (source_center - target_center)[2]
+                        if check_above > 0:
+                            continue
+
+                        # @todo If the object is above but with an offset in x or y, it will be detected as well.
+
+                        #we only select the worst case scenario.
+                        if dist["distance"] < self.tolerance:
+                            if min_distance_found is None:
+                                min_distance_found = dist["distance"]
+                                selected_result = {
+                                    "source": source_faces["entity"],
+                                    "target": target_faces["entity"],
+                                }
+                                continue
+                            if min_distance_found < dist["distance"]:
+                                min_distance_found = dist["distance"]
+                                selected_result = {
+                                    "source": source_faces["entity"],
+                                    "target": target_faces["entity"],
+                                }
+
+                    if selected_result is not None:
+                        list_result.append(
+                            ClashResultTwoObjects(
+                                source=selected_result["source"],
+                                target=selected_result["target"],
+                                state=True,
+                            )
+                        )
+
+        self.result = list_result
+
+        if state == "Final":
+            self.manage_result()
+
+        if state == "Select":
+            self.produce_select()
 
 
 # ===== Complex Rule

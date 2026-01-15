@@ -44,23 +44,35 @@ This is my starting point for a new rule.
 [Clearance Above Object](Clash_Expend/2ObjectsRules/ClearanceAbove)
 
 ## Two Object Rule
-* [Clearance Above Object](Clash_Expend/2ObjectsRules/ClearanceAbove)
-* [Clearance Next To Object](Clash_Expend/2ObjectsRules/ClearanceNextTo)
-* [Clearance Below Object](Clash_Expend/2ObjectsRules/ClearanceBelow)
-* [Cleareance In Front Of](Clash_Expend/2ObjectsRules/ClearanceInFrontOf)
-* [Direct View](Clash_Expend/2ObjectsRules/DirectView)
-* [Face Check](Clash_Expend/2ObjectsRules/FaceCheck)
-* [Angle Between](Clash_Expend/2ObjectsRules/AngleBetween)
-* [Surface Recover](Clash_Expend/2ObjectsRules/SurfaceRecover)
+* [Clearance Above Object](Clash_Expend/2ObjectsRules/ClearanceAbove) Status:NOK
+* [Clearance Next To Object](Clash_Expend/2ObjectsRules/ClearanceNextTo) Status:NOK
+* [Clearance Below Object](Clash_Expend/2ObjectsRules/ClearanceBelow) Status:NOK
+* [Cleareance OBB](Clash_Expend/2ObjectsRules/ClearanceOBB) Status:NOK
+* [Direct View](Clash_Expend/2ObjectsRules/DirectView) Status:NOK
+* [Face Check](Clash_Expend/2ObjectsRules/FaceCheck) Status:NOK
+* [Angle Between](Clash_Expend/2ObjectsRules/AngleBetween) Status:NOK
+* [Surface Recover](Clash_Expend/2ObjectsRules/SurfaceRecover) Status:NOK
 
 
 ## One Object Rule
-* [Volume](Clash_Expend/1ObjectsRules/Orientation)
-* [Orientation](Clash_Expend/1ObjectsRules/Orientation)
+* [Volume](Clash_Expend/1ObjectsRules/Orientation) Status:Partial
+* [Area](Clash_Expend/1ObjectsRules/Area) Status:NOK
+* [Top Surface](Clash_Expend/1ObjectsRules/TopSurface) Status:NOK
+* [Bottom Surface](Clash_Expend/1ObjectsRules/BottomSurface) Status:NOK
+* [Lateral Surface](Clash_Expend/1ObjectsRules/LateralSurface) Status:NOK
+* [Projected Surface](Clash_Expend/1ObjectsRules/ProjectedSurface) Status:NOK
+
+* [Orientation](Clash_Expend/1ObjectsRules/Orientation) Status:NOK
+
 
 ## Complex Rule
-* [Free Space in Room](Clash_Expend/1ObjectsRules/Orientation)
-* [Find Path](Clash_Expend/ComplexRules/FindPath)
-* [EvacuationDistance](Clash_Expend/ComplexRules/EvacuationDistance)
-* [Alignement](Clash_Expend/ComplexRules/Alignement)
+* [Free Space in Room](Clash_Expend/1ObjectsRules/Orientation) Status:NOK
+* [Find Path](Clash_Expend/ComplexRules/FindPath) Status:NOK
+* [EvacuationDistance](Clash_Expend/ComplexRules/EvacuationDistance) Status:NOK
+* [Alignement](Clash_Expend/ComplexRules/Alignement) Status:NOK
 
+
+# Todo List
+
+Create MUST Rule 
+Create Actor 
