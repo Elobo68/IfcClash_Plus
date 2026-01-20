@@ -42,15 +42,15 @@ class RuleFile:
 
         for rulecheck_or_folder in self.contains:
             rulecheck_or_folder.run()
-            
-    
+
     def update_file_info(self):
         for rule_or_file in self.contains:
-            rule_or_file.update_file_info(self.list_ifc_path,self.list_ifc_file)
+            rule_or_file.update_file_info(self.list_ifc_path, self.list_ifc_file)
 
     def load_file(self):
         for path in self.list_ifc_path:
             self.list_ifc_file.append(ifcopenshell.open(path))
+
 
 class RuleFolder:
     def __init__(self):
@@ -71,10 +71,11 @@ class RuleFolder:
                 rulecheck_or_folder.run()
         else:
             return False
-        
-    def update_file_info(self,files_path,files):
+
+    def update_file_info(self, files_path, files):
         for rule_or_file in self.contains:
-            rule_or_file.update_file_info(files_path,files)
+            rule_or_file.update_file_info(files_path, files)
+
 
 class Select:
     def __init__(self):
@@ -82,7 +83,7 @@ class Select:
         self.list_ifc_path: list[str] = []
         self.list_ifc_file: list[ifcopenshell.file] = []
         self.dict_elements: dict = {}
-        self.list_of_elements: list[ifcopenshell.entity_instance]=[]
+        self.list_of_elements: list[ifcopenshell.entity_instance] = []
 
     def run(self):
         pass
@@ -95,12 +96,12 @@ class Select:
 
     def create_list_of_element(self):
         for onefile in self.list_ifc_file:
-            self.list_of_elements=self.dict_elements[onefile]+self.list_of_elements
+            self.list_of_elements = self.dict_elements[onefile] + self.list_of_elements
 
+    def update_file_info(self, files_path, files):
+        self.list_ifc_path = files_path
+        self.list_ifc_file = files
 
-    def update_file_info(self,files_path,files):
-        self.list_ifc_path=files_path
-        self.list_ifc_file=files
 
 class SelectFacet(Select):
     def __init__(self, ClassificationType="Facet"):
@@ -156,7 +157,7 @@ class SelectRule(Select):
 
 @abstractmethod
 class RuleCheck:
-    def __init__(self,source):
+    def __init__(self, source):
         self.id: str = None
         self.type: str = None
 
@@ -210,6 +211,7 @@ class RuleCheck:
 
     def to_bcf():
         print("Reuse Ifcopenshell")
+
 
 class RuleCheckOneObject(RuleCheck):
     def __init__(self):
@@ -323,20 +325,21 @@ class RuleCheckOneObject(RuleCheck):
         self.run_criticity()
         self.run_actor()
 
-    def update_file_info(self,files_path,files):
-        self.select_source.update_file_info(files_path,files)
+    def update_file_info(self, files_path, files):
+        self.select_source.update_file_info(files_path, files)
 
         if self.select_grouping is not None:
-            self.select_grouping.update_file_info(files_path,files)
+            self.select_grouping.update_file_info(files_path, files)
 
         for one_select_criticity in self.select_criticity:
-            one_select_criticity.update_file_info(files_path,files)
+            one_select_criticity.update_file_info(files_path, files)
 
         for one_select_actor in self.select_actor:
-            one_select_actor.update_file_info(files_path,files)
+            one_select_actor.update_file_info(files_path, files)
+
 
 class RuleCheckTwoObjects(RuleCheck):
-    def __init__(self,source,target):
+    def __init__(self, source, target):
         super().__init__(source)
         self.select_target: Select = target
         self.select_exception: list[SelectRule] = []
@@ -368,66 +371,53 @@ class RuleCheckTwoObjects(RuleCheck):
                     grouped[group_object] = [grouped_object]
                 grouped[group_object].append(grouped_object)
 
-
-
             for oneobject in self.result:
                 oneobject.source_group = oneobject.source.is_a()
 
         def grouping_by_property(self):
             print("TODO")
-            #@todo Grouping by property for 2 objects rules
+            # @todo Grouping by property for 2 objects rules
             ...
 
         def grouping_by_attribute(self):
             print("TODO")
-            #@todo Grouping by attribute for 2 objects rules
+            # @todo Grouping by attribute for 2 objects rules
             ...
 
         def grouping_by_part_of(self):
             print("TODO")
-            #@todo Grouping by part of for 2 objects rules
+            # @todo Grouping by part of for 2 objects rules
             ...
 
         def grouping_by_material(self):
             print("TODO")
-            #@todo Grouping by material for 2 objects rules
+            # @todo Grouping by material for 2 objects rules
             ...
 
         def grouping_by_closeness(self):
             print("TODO")
-            #@todo Grouping by closeness for 2 objects rules, reuse IfcClash
+            # @todo Grouping by closeness for 2 objects rules, reuse IfcClash
 
     def run_criticity(self):
-        #@todo Make criticty for two objects
+        # @todo Make criticty for two objects
 
-        if self.select_criticity==[]:
+        if self.select_criticity == []:
             return None
-        
+
         for one_criticity in self.select_criticity:
             one_criticity.run()
             one_criticity.create_list_of_element()
 
         for oneresult in self.result:
             for one_criticity in self.select_criticity:
-
-
-                for oneelement in one_criticity.list_of_elements:
-                    print(oneresult.source==oneelement,oneresult.source,oneelement)
-
-                
-
-
-
                 if oneresult.source in one_criticity.list_of_elements:
-                    print("In")
                     oneresult.criticity.append(one_criticity.classification_name)
                 if oneresult.target in one_criticity.list_of_elements:
-                    print("In")
                     oneresult.criticity.append(one_criticity.classification_name)
 
     def run_actor(self):
         print("TODO ACTOR")
-        #@todo Make actor for two objects rules
+        # @todo Make actor for two objects rules
 
     def run_exception(self):
         for one_rule_result in self.result:
@@ -448,36 +438,34 @@ class RuleCheckTwoObjects(RuleCheck):
                         break
 
     def run_must(self):
-        #@todo create the must for the two objects rules
+        # @todo create the must for the two objects rules
         ...
-        
-    def update_file_info(self,files_path,files):
-        self.select_source.update_file_info(files_path,files)
-        self.select_target.update_file_info(files_path,files)
+
+    def update_file_info(self, files_path, files):
+        self.select_source.update_file_info(files_path, files)
+        self.select_target.update_file_info(files_path, files)
         if self.select_grouping is not None:
-            self.select_grouping.update_file_info(files_path,files)
+            self.select_grouping.update_file_info(files_path, files)
 
         for one_select_criticity in self.select_criticity:
-            one_select_criticity.update_file_info(files_path,files)
+            one_select_criticity.update_file_info(files_path, files)
 
         for one_select_actor in self.select_actor:
-            one_select_actor.update_file_info(files_path,files)
+            one_select_actor.update_file_info(files_path, files)
 
         for one_select_exception in self.select_exception:
-            one_select_exception.update_file_info(files_path,files)
-
-
+            one_select_exception.update_file_info(files_path, files)
 
     def manage_result(self):
         self.run_exception()
-        
 
         self.run_criticity()
         self.run_actor()
 
-        #Only one is possible, it either grouping or must. Not both of them
+        # Only one is possible, it either grouping or must. Not both of them
         self.run_must()
         self.run_grouping()
+
 
 class RuleCheckComplex(RuleCheck):
     def __init__(self):
@@ -487,6 +475,7 @@ class RuleCheckComplex(RuleCheck):
         select_context_B: Select = None
         select_context_C: Select = None
 
+
 # ==== Clash Result
 class ClashResult:
     def __init__(self, source, state, type="OneObjectResult"):
@@ -495,17 +484,20 @@ class ClashResult:
         self.source: ifcopenshell.entity_instance = source
 
         self.status: bool = state
-        self.criticity: list[Select] = []
-        self.actor: list[Select]  = []
+        self.criticity: list[str] = []
+        self.actor: list[str] = []
+
 
 class ClashResultOneObject(ClashResult):
     def __init__(self, source, state):
         super().__init__(source, state)
 
+
 class ClashResultTwoObjects(ClashResult):
     def __init__(self, source, target, state, type="TwoObjectsResult"):
         super().__init__(source, state, type)
         self.target: ifcopenshell.entity_instance = target
+
 
 class ClashResultComplex(ClashResult):
     def __init__(self):
@@ -513,14 +505,12 @@ class ClashResultComplex(ClashResult):
         self.target: ifcopenshell.entity_instance = None
         self.context: ifcopenshell.entity_instance = None
 
+
 # ====== Group Result
 class GroupResult:
     def __init__(self, source, state, type="GroupResult"):
         self.id: str
         self.type: str = type
-        self.result_group: list[ClashResult]= []
+        self.result_group: list[ClashResult] = []
 
-
-        #@todo Finish the Grouping of result, what is the best way to do that ?
-
-
+        # @todo Finish the Grouping of result, what is the best way to do that ?
