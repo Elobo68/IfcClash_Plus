@@ -100,6 +100,11 @@ If they are, that's probably only a modeling problem, not a real world issue.
 WORK IN PROGRESS
 ## Absolute Number of Elements
 
+The number of target elements must be X times the number of source elements. 
+
+The relation can be from source.
+
+
 ## Relative Number of Elements
 
 ## Absolute Quantity

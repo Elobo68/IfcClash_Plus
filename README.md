@@ -44,7 +44,7 @@ This is my starting point for a new rule.
 [Clearance Above Object](Clash_Expend/2ObjectsRules/ClearanceAbove)
 
 ## Two Object Rule
-* [Clearance Above Object](Clash_Expend/2ObjectsRules/ClearanceAbove) Status:NOK
+* [Clearance Above Object](Clash_Expend/2ObjectsRules/ClearanceAbove) Status:OK
 * [Clearance Next To Object](Clash_Expend/2ObjectsRules/ClearanceNextTo) Status:NOK
 * [Clearance Below Object](Clash_Expend/2ObjectsRules/ClearanceBelow) Status:NOK
 * [Cleareance OBB](Clash_Expend/2ObjectsRules/ClearanceOBB) Status:NOK
@@ -61,7 +61,6 @@ This is my starting point for a new rule.
 * [Bottom Surface](Clash_Expend/1ObjectsRules/BottomSurface) Status:NOK
 * [Lateral Surface](Clash_Expend/1ObjectsRules/LateralSurface) Status:NOK
 * [Projected Surface](Clash_Expend/1ObjectsRules/ProjectedSurface) Status:NOK
-
 * [Orientation](Clash_Expend/1ObjectsRules/Orientation) Status:NOK
 
 
@@ -73,6 +72,3 @@ This is my starting point for a new rule.
 
 
 # Todo List
-
-Create MUST Rule 
-Create Actor 

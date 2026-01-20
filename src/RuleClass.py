@@ -69,6 +69,7 @@ class Select:
         self.list_ifc_path: list[str] = []
         self.list_ifc_file: list[ifcopenshell.file] = []
         self.dict_elements: dict = {}
+        self.list_of_elements: list[ifcopenshell.entity_instance]=[]
 
     def run(self):
         pass
@@ -82,6 +83,13 @@ class Select:
         for onefile in self.list_ifc_file:
             Dict[onefile] = None
         self.dict_elements = Dict
+
+    def create_list_of_element(self):
+        for onefile in self.list_ifc_file:
+            self.list_of_elements=self.dict_elements[onefile]+self.list_of_elements
+
+
+
 
 
 class SelectFacet(Select):
@@ -149,8 +157,8 @@ class RuleCheck:
 
         self.select_source: Select = source
         self.select_grouping: SelectFacet = None
-        self.select_criticity: list[Select] = []
-        self.select_actor: list[Select] = []
+        self.select_criticity: list[SelectFacet] = []
+        self.select_actor: list[SelectFacet] = []
 
     def add_to_tree(self, Select, type_of_tree):
         for ifc_file in Select.dict_elements.keys():
@@ -193,7 +201,6 @@ class RuleCheck:
 
     def to_bcf():
         print("Reuse Ifcopenshell")
-
 
 class RuleCheckOneObject(RuleCheck):
     def __init__(self):
@@ -307,12 +314,10 @@ class RuleCheckOneObject(RuleCheck):
         self.run_criticity()
         self.run_actor()
 
-
 class RuleCheckTwoObjects(RuleCheck):
     def __init__(self,source,target):
         super().__init__(source)
         self.select_target: Select = target
-        self.select_focus_filter: Select = None
         self.select_exception: list[SelectRule] = []
         self.select_must_rule: str = (
             None  # @todo Create the must rule for the Two Objects
@@ -332,6 +337,18 @@ class RuleCheckTwoObjects(RuleCheck):
 
     def run_grouping(self):
         def grouping_by_entity(self):
+            grouped = {}
+
+            for result in self.result:
+                group_object = result.source
+                grouped_object = result.target
+
+                if group_object not in grouped:
+                    grouped[group_object] = [grouped_object]
+                grouped[group_object].append(grouped_object)
+
+
+
             for oneobject in self.result:
                 oneobject.source_group = oneobject.source.is_a()
 
@@ -360,8 +377,34 @@ class RuleCheckTwoObjects(RuleCheck):
             #@todo Grouping by closeness for 2 objects rules, reuse IfcClash
 
     def run_criticity(self):
-        print("TODO CRITICITY")
         #@todo Make criticty for two objects
+
+        if self.select_criticity==[]:
+            return None
+        
+        for one_criticity in self.select_criticity:
+            one_criticity.run()
+            one_criticity.create_list_of_element()
+
+        for oneresult in self.result:
+            for one_criticity in self.select_criticity:
+
+
+                for oneelement in one_criticity.list_of_elements:
+                    print(oneresult.source==oneelement,oneresult.source,oneelement)
+
+                
+
+
+
+                if oneresult.source in one_criticity.list_of_elements:
+                    print("In")
+                    oneresult.criticity.append(one_criticity.classification_name)
+                if oneresult.target in one_criticity.list_of_elements:
+                    print("In")
+                    oneresult.criticity.append(one_criticity.classification_name)
+
+            
 
     def run_actor(self):
         print("TODO ACTOR")
@@ -386,15 +429,23 @@ class RuleCheckTwoObjects(RuleCheck):
                         break
 
     def run_must(self):
-        print("TODO MUST")
         #@todo create the must for the two objects rules
+        ...
+        
+
+
+
 
     def manage_result(self):
         self.run_exception()
-        self.run_must()
-        self.run_grouping()
+        
+
         self.run_criticity()
         self.run_actor()
+
+        #Only one is possible, it either grouping or must. Not both of them
+        self.run_must()
+        self.run_grouping()
 
 
 class RuleCheckComplex(RuleCheck):
@@ -405,33 +456,40 @@ class RuleCheckComplex(RuleCheck):
         select_context_B: Select = None
         select_context_C: Select = None
 
-
 # ==== Clash Result
 class ClashResult:
-    def __init__(self, source, state, type="SingleResult"):
+    def __init__(self, source, state, type="OneObjectResult"):
         self.id: str
         self.type: str = type
         self.source: ifcopenshell.entity_instance = source
-        self.source_group: str = None
 
         self.status: bool = state
-        self.criticity: str = []
-        self.actor: str = []
-
+        self.criticity: list[Select] = []
+        self.actor: list[Select]  = []
 
 class ClashResultOneObject(ClashResult):
     def __init__(self, source, state):
         super().__init__(source, state)
 
-
 class ClashResultTwoObjects(ClashResult):
-    def __init__(self, source, target, state, type="SingleResult"):
+    def __init__(self, source, target, state, type="TwoObjectsResult"):
         super().__init__(source, state, type)
         self.target: ifcopenshell.entity_instance = target
-
 
 class ClashResultComplex(ClashResult):
     def __init__(self):
         super().__init__()
         self.target: ifcopenshell.entity_instance = None
         self.context: ifcopenshell.entity_instance = None
+
+# ====== Group Result
+class GroupResult:
+    def __init__(self, source, state, type="GroupResult"):
+        self.id: str
+        self.type: str = type
+        self.result_group: list[ClashResult]= []
+
+
+        #@todo Finish the Grouping of result, what is the best way to do that ?
+
+
