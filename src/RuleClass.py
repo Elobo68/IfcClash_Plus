@@ -34,13 +34,23 @@ class RuleFile:
         self.list_ifc_file: list[ifcopenshell.file] = []
         self.contains: list = []  # Union of folder or Rule
 
-        self.list_of_results: list[ClashResult] = []
         self.path_to_save: str = None
 
     def run(self):
+        self.load_file()
+        self.update_file_info()
+
         for rulecheck_or_folder in self.contains:
             rulecheck_or_folder.run()
+            
+    
+    def update_file_info(self):
+        for rule_or_file in self.contains:
+            rule_or_file.update_file_info(self.list_ifc_path,self.list_ifc_file)
 
+    def load_file(self):
+        for path in self.list_ifc_path:
+            self.list_ifc_file.append(ifcopenshell.open(path))
 
 class RuleFolder:
     def __init__(self):
@@ -61,7 +71,10 @@ class RuleFolder:
                 rulecheck_or_folder.run()
         else:
             return False
-
+        
+    def update_file_info(self,files_path,files):
+        for rule_or_file in self.contains:
+            rule_or_file.update_file_info(files_path,files)
 
 class Select:
     def __init__(self):
@@ -74,10 +87,6 @@ class Select:
     def run(self):
         pass
 
-    def Load_File(self):
-        for path in self.list_ifc_path:
-            self.list_ifc_file.append(ifcopenshell.open(path))
-
     def initialize_dict(self):
         Dict = dict()
         for onefile in self.list_ifc_file:
@@ -89,8 +98,9 @@ class Select:
             self.list_of_elements=self.dict_elements[onefile]+self.list_of_elements
 
 
-
-
+    def update_file_info(self,files_path,files):
+        self.list_ifc_path=files_path
+        self.list_ifc_file=files
 
 class SelectFacet(Select):
     def __init__(self, ClassificationType="Facet"):
@@ -100,7 +110,6 @@ class SelectFacet(Select):
         self.classification_name: str = ""
 
     def run(self):
-        self.Load_File()
         self.initialize_dict()
 
         for onefile in self.list_ifc_file:
@@ -314,6 +323,18 @@ class RuleCheckOneObject(RuleCheck):
         self.run_criticity()
         self.run_actor()
 
+    def update_file_info(self,files_path,files):
+        self.select_source.update_file_info(files_path,files)
+
+        if self.select_grouping is not None:
+            self.select_grouping.update_file_info(files_path,files)
+
+        for one_select_criticity in self.select_criticity:
+            one_select_criticity.update_file_info(files_path,files)
+
+        for one_select_actor in self.select_actor:
+            one_select_actor.update_file_info(files_path,files)
+
 class RuleCheckTwoObjects(RuleCheck):
     def __init__(self,source,target):
         super().__init__(source)
@@ -404,8 +425,6 @@ class RuleCheckTwoObjects(RuleCheck):
                     print("In")
                     oneresult.criticity.append(one_criticity.classification_name)
 
-            
-
     def run_actor(self):
         print("TODO ACTOR")
         #@todo Make actor for two objects rules
@@ -432,7 +451,20 @@ class RuleCheckTwoObjects(RuleCheck):
         #@todo create the must for the two objects rules
         ...
         
+    def update_file_info(self,files_path,files):
+        self.select_source.update_file_info(files_path,files)
+        self.select_target.update_file_info(files_path,files)
+        if self.select_grouping is not None:
+            self.select_grouping.update_file_info(files_path,files)
 
+        for one_select_criticity in self.select_criticity:
+            one_select_criticity.update_file_info(files_path,files)
+
+        for one_select_actor in self.select_actor:
+            one_select_actor.update_file_info(files_path,files)
+
+        for one_select_exception in self.select_exception:
+            one_select_exception.update_file_info(files_path,files)
 
 
 
@@ -446,7 +478,6 @@ class RuleCheckTwoObjects(RuleCheck):
         #Only one is possible, it either grouping or must. Not both of them
         self.run_must()
         self.run_grouping()
-
 
 class RuleCheckComplex(RuleCheck):
     def __init__(self):
