@@ -52,6 +52,12 @@ class RuleFile:
             self.list_ifc_file.append(ifcopenshell.open(path))
 
 
+    def to_xml(self, filepath="output.xml"):
+        print("to_xml() is not working")
+        #@todo to_xml function
+
+
+
 class RuleFolder:
     def __init__(self):
         self.id: str = "AZE"
@@ -288,19 +294,15 @@ class RuleCheckOneObject(RuleCheck):
         if self.select_criticity == []:
             return None
 
-        for result in self.result:
-            filter_flag = True
-            for Facet in self.select_criticity.applicability:
-                ListFiltering = Facet.filter(
-                    ifc_file=result.source.file, elements=result.source
-                )
+        for one_criticity in self.select_criticity:
+            one_criticity.run()
+            one_criticity.create_list_of_element()
 
-                if ListFiltering == []:
-                    filter_flag = False
-                    break
+        for oneresult in self.result:
+            for one_criticity in self.select_criticity:
+                if oneresult.source in one_criticity.list_of_elements:
+                    oneresult.criticity.append(one_criticity.classification_name)
 
-            if filter_flag:
-                result.criticity.append(self.select_criticity.classification_name)
 
     def run_actor(self):
         if self.select_actor == []:
@@ -399,7 +401,6 @@ class RuleCheckTwoObjects(RuleCheck):
             # @todo Grouping by closeness for 2 objects rules, reuse IfcClash
 
     def run_criticity(self):
-        # @todo Make criticty for two objects
 
         if self.select_criticity == []:
             return None
