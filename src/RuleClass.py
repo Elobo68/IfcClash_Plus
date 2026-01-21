@@ -239,6 +239,7 @@ class RuleCheckOneObject(RuleCheck):
 
     def run_grouping(self):
         # @todo Should i stick to ids for these selection, it may be a bad idea
+        # grouping by source and select is not relevant here
 
         def grouping_by_entity(self):
             group_dict = {}
@@ -519,6 +520,25 @@ class RuleCheckTwoObjects(RuleCheck):
             print("TODO")
             # @todo Grouping by closeness for 2 objects rules, reuse IfcClash
 
+        def grouping_by_object(self,source_or_target):
+            group_dict = {}
+            for result in self.result:
+
+                if source_or_target=="source":
+                    unique_value = result.source
+                if source_or_target=="target":
+                    unique_value = result.target
+                
+                if unique_value not in group_dict:
+                    thegroupresult = GroupResult()
+                    thegroupresult.add_source_and_target(result)
+                    group_dict[unique_value] = thegroupresult
+                else:
+                    group_dict[unique_value].add_source_and_target(result)
+
+            for key in group_dict:
+                self.grouped_result.append(group_dict[key])
+
         if self.select_grouping is None:
             return 0
 
@@ -595,7 +615,11 @@ class RuleCheckTwoObjects(RuleCheck):
         if self.abs_or_rel_check is None:
             return None
         
-        self.abs_or_rel_check.run()
+
+        self.run_grouping(self.abs_or_rel_check.groupby_method)
+        
+        
+        self.abs_or_rel_check.run(self.grouped_result)
 
         return True
 
@@ -647,56 +671,9 @@ class AbsoluteOrRelativeChecking:
             "source"  # In futur, it could be grouped by different means
         )
 
-    def run(self, list_of_result: list[ClashResult]):
-        # @todo move the grouping in the grouping section
-        if (
-            self.relative_groupby_method == "source"
-            or self.relative_groupby_method == "target"
-        ):
-            group_dict = {}
-            for result in list_of_result:
-                if self.relative_groupby_method == "source":
-                    if result.source not in group_dict:
-                        group_dict[result.source] = {
-                            "target": set(),
-                            "result_group": [],
-                            "source": set(),
-                        }
-                        group_dict[result.source]["source"].add(result.source)
-                        group_dict[result.source]["target"].add(result.target)
-                        group_dict[result.source]["result_group"].append(result)
-                    else:
-                        group_dict[result.source]["target"].add(result.target)
-                        group_dict[result.source]["result_group"].append(result)
-                else:
-                    if result.target not in group_dict:
-                        group_dict[result.target] = {
-                            "target": set(),
-                            "result_group": [],
-                            "source": set(),
-                        }
-                        group_dict[result.target]["target"].add(result.target)
-                        group_dict[result.target]["source"].add(result.source)
-                        group_dict[result.target]["result_group"].append(result)
-
-                    else:
-                        group_dict[result.target]["source"].add(result.source)
-                        group_dict[result.target]["result_group"].append(result)
-
-        list_of_groupresult = []
-        import copy
-        import datetime
-
-        for key in group_dict:
-            if self.relative_groupby_method == "source":
-                groupresult = GroupResult(type=datetime.datetime.now())
-                groupresult.source_set.add(key)
-                groupresult.target_set = group_dict[key]["target"]
-                groupresult.result_group = [group_dict[key]["result_group"]]
-                list_of_groupresult.append(copy.copy(groupresult))
-
-        for onegroupresult in list_of_groupresult:
-            onegroupresult.check_asbolute_number(self)
+    def run(self, list_of_result: list[GroupResult]):
+        for onegroupresult in list_of_result:
+            self.eval_check(onegroupresult)
 
 
 class AbsoluteChecking(AbsoluteOrRelativeChecking):
