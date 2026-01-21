@@ -222,7 +222,7 @@ class RuleCheck:
 
 
 class RuleCheckOneObject(RuleCheck):
-    def __init__(self,source):
+    def __init__(self, source):
         super().__init__(source)
         # To remember exception has no need in One Object because you can chains the rule to get the same result.
 
@@ -238,17 +238,16 @@ class RuleCheckOneObject(RuleCheck):
         return dict_return
 
     def run_grouping(self):
-
-        #@todo Should i stick to ids for these selection, it may be a bad idea
+        # @todo Should i stick to ids for these selection, it may be a bad idea
 
         def grouping_by_entity(self):
-            group_dict={}
+            group_dict = {}
             for result in self.result:
-                unique_value=result.source.is_a()
+                unique_value = result.source.is_a()
                 if unique_value not in group_dict:
-                    thegroupresult=GroupResult()
+                    thegroupresult = GroupResult()
                     thegroupresult.add_source(result)
-                    group_dict[unique_value]=thegroupresult
+                    group_dict[unique_value] = thegroupresult
                 else:
                     group_dict[unique_value].add_source(result)
 
@@ -256,15 +255,19 @@ class RuleCheckOneObject(RuleCheck):
                 self.grouped_result.append(group_dict[key])
 
         def grouping_by_property(self):
-            group_dict={}
+            group_dict = {}
             for result in self.result:
-                unique_value=get_pset(result.source, name=self.select_grouping.propertySet, prop=self.select_grouping.baseName)
-                unique_value=str(unique_value)
+                unique_value = get_pset(
+                    result.source,
+                    name=self.select_grouping.propertySet,
+                    prop=self.select_grouping.baseName,
+                )
+                unique_value = str(unique_value)
                 print(unique_value)
                 if unique_value not in group_dict:
-                    thegroupresult=GroupResult()
+                    thegroupresult = GroupResult()
                     thegroupresult.add_source(result)
-                    group_dict[unique_value]=thegroupresult
+                    group_dict[unique_value] = thegroupresult
                 else:
                     group_dict[unique_value].add_source(result)
 
@@ -272,16 +275,16 @@ class RuleCheckOneObject(RuleCheck):
                 self.grouped_result.append(group_dict[key])
 
         def grouping_by_attribute(self):
-            group_dict={}
+            group_dict = {}
             for result in self.result:
-                unique_value=result.source.get_info()
-                unique_value=unique_value[self.select_grouping.name]
-                unique_value=str(unique_value)
+                unique_value = result.source.get_info()
+                unique_value = unique_value[self.select_grouping.name]
+                unique_value = str(unique_value)
                 print(unique_value)
                 if unique_value not in group_dict:
-                    thegroupresult=GroupResult()
+                    thegroupresult = GroupResult()
                     thegroupresult.add_source(result)
-                    group_dict[unique_value]=thegroupresult
+                    group_dict[unique_value] = thegroupresult
                 else:
                     group_dict[unique_value].add_source(result)
 
@@ -328,8 +331,6 @@ class RuleCheckOneObject(RuleCheck):
         if isinstance(self.select_grouping, Classification):
             grouping_by_classification(self)
 
-        
-
     def run_criticity(self):
         if self.select_criticity == []:
             return None
@@ -361,10 +362,25 @@ class RuleCheckOneObject(RuleCheck):
             if filter_flag:
                 result.actor.append(self.select_actor.classification_name)
 
+
+    def run_abs_or_rel(self):
+        if self.abs_or_rel_check is None:
+            return None
+        
+        self.abs_or_rel_check.run()
+
+        return True
+
+
     def manage_result(self):
-        self.run_grouping()
+        
         self.run_criticity()
         self.run_actor()
+
+        # Only one is possible, it either grouping or must. Not both of them
+        if self.run_abs_or_rel() is None:
+            self.run_grouping()
+
 
     def update_file_info(self, files_path, files):
         self.select_source.update_file_info(files_path, files)
@@ -396,23 +412,23 @@ class RuleCheckTwoObjects(RuleCheck):
 
     def run_grouping(self):
         def grouping_by_entity(self):
-            group_dict={}
+            group_dict = {}
             for result in self.result:
-                #Source grouping
-                unique_value=result.source.is_a()
+                # Source grouping
+                unique_value = result.source.is_a()
                 if unique_value not in group_dict:
-                    thegroupresult=GroupResult()
+                    thegroupresult = GroupResult()
                     thegroupresult.add_source(result)
-                    group_dict[unique_value]=thegroupresult
+                    group_dict[unique_value] = thegroupresult
                 else:
                     group_dict[unique_value].add_source(result)
 
-                #Target grouping
-                unique_value=result.target.is_a()
+                # Target grouping
+                unique_value = result.target.is_a()
                 if unique_value not in group_dict:
-                    thegroupresult=GroupResult()
+                    thegroupresult = GroupResult()
                     thegroupresult.add_target(result)
-                    group_dict[unique_value]=thegroupresult
+                    group_dict[unique_value] = thegroupresult
                 else:
                     group_dict[unique_value].add_target(result)
 
@@ -420,27 +436,35 @@ class RuleCheckTwoObjects(RuleCheck):
                 self.grouped_result.append(group_dict[key])
 
         def grouping_by_property(self):
-            group_dict={}
+            group_dict = {}
             for result in self.result:
-                #Source grouping
-                unique_value=get_pset(result.source, name=self.select_grouping.propertySet, prop=self.select_grouping.baseName)
-                unique_value=str(unique_value)
+                # Source grouping
+                unique_value = get_pset(
+                    result.source,
+                    name=self.select_grouping.propertySet,
+                    prop=self.select_grouping.baseName,
+                )
+                unique_value = str(unique_value)
                 print(unique_value)
                 if unique_value not in group_dict:
-                    thegroupresult=GroupResult()
+                    thegroupresult = GroupResult()
                     thegroupresult.add_source(result)
-                    group_dict[unique_value]=thegroupresult
+                    group_dict[unique_value] = thegroupresult
                 else:
                     group_dict[unique_value].add_source(result)
 
-                #Target grouping
-                unique_value=get_pset(result.target, name=self.select_grouping.propertySet, prop=self.select_grouping.baseName)
-                unique_value=str(unique_value)
+                # Target grouping
+                unique_value = get_pset(
+                    result.target,
+                    name=self.select_grouping.propertySet,
+                    prop=self.select_grouping.baseName,
+                )
+                unique_value = str(unique_value)
                 print(unique_value)
                 if unique_value not in group_dict:
-                    thegroupresult=GroupResult()
+                    thegroupresult = GroupResult()
                     thegroupresult.add_target(result)
-                    group_dict[unique_value]=thegroupresult
+                    group_dict[unique_value] = thegroupresult
                 else:
                     group_dict[unique_value].add_target(result)
 
@@ -448,29 +472,29 @@ class RuleCheckTwoObjects(RuleCheck):
                 self.grouped_result.append(group_dict[key])
 
         def grouping_by_attribute(self):
-            group_dict={}
+            group_dict = {}
             for result in self.result:
-                #Source
-                unique_value=result.source.get_info()
-                unique_value=unique_value[self.select_grouping.name]
-                unique_value=str(unique_value)
+                # Source
+                unique_value = result.source.get_info()
+                unique_value = unique_value[self.select_grouping.name]
+                unique_value = str(unique_value)
                 print(unique_value)
                 if unique_value not in group_dict:
-                    thegroupresult=GroupResult()
+                    thegroupresult = GroupResult()
                     thegroupresult.add_source(result)
-                    group_dict[unique_value]=thegroupresult
+                    group_dict[unique_value] = thegroupresult
                 else:
                     group_dict[unique_value].add_source(result)
 
-                #Target
-                unique_value=result.target.get_info()
-                unique_value=unique_value[self.select_grouping.name]
-                unique_value=str(unique_value)
+                # Target
+                unique_value = result.target.get_info()
+                unique_value = unique_value[self.select_grouping.name]
+                unique_value = str(unique_value)
                 print(unique_value)
                 if unique_value not in group_dict:
-                    thegroupresult=GroupResult()
+                    thegroupresult = GroupResult()
                     thegroupresult.add_target(result)
-                    group_dict[unique_value]=thegroupresult
+                    group_dict[unique_value] = thegroupresult
                 else:
                     group_dict[unique_value].add_target(result)
 
@@ -567,14 +591,18 @@ class RuleCheckTwoObjects(RuleCheck):
                         one_rule_result.state = False
                         break
 
-    def run_must(self):
-        # @todo create the must for the two objects rules
-        ...
+    def run_abs_or_rel(self):
+        if self.abs_or_rel_check is None:
+            return None
+        
+        self.abs_or_rel_check.run()
+
+        return True
+
 
     def update_file_info(self, files_path, files):
         self.select_source.update_file_info(files_path, files)
         self.select_target.update_file_info(files_path, files)
-
 
         for one_select_criticity in self.select_criticity:
             one_select_criticity.update_file_info(files_path, files)
@@ -592,8 +620,8 @@ class RuleCheckTwoObjects(RuleCheck):
         self.run_actor()
 
         # Only one is possible, it either grouping or must. Not both of them
-        self.run_must()
-        self.run_grouping()
+        if self.run_abs_or_rel() is None:
+            self.run_grouping()
 
 
 class RuleCheckComplex(RuleCheck):
@@ -800,16 +828,16 @@ class GroupResult:
         self.source_set: set(ifcopenshell.entity_instance) = set()
         self.target_set: set(ifcopenshell.entity_instance) = set()
         self.abs_or_rel_check = None
-    def add_source(self,clash_result:ClashResult):
+
+    def add_source(self, clash_result: ClashResult):
         self.result_group.append(clash_result)
         self.source_set.add(clash_result.source)
 
-    def add_target(self,clash_result:ClashResult):
+    def add_target(self, clash_result: ClashResult):
         self.result_group.append(clash_result)
         self.target_set.add(clash_result.target)
 
-    def add_source_and_target(self,clash_result:ClashResult):
+    def add_source_and_target(self, clash_result: ClashResult):
         self.result_group.append(clash_result)
         self.target_set.add(clash_result.target)
         self.source_set.add(clash_result.source)
-
