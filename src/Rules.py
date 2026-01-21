@@ -16,7 +16,6 @@ import numpy as np
 from typing import Literal
 
 
-
 # ===========One Object Rule
 class Volume(RuleCheckOneObject):
     from ifcopenshell.util.shape import get_volume
@@ -319,15 +318,13 @@ class Collision(RuleCheckTwoObjects):
         self.add_to_tree(self.select_source, "BVH")
         self.add_to_tree(self.select_target, "BVH")
 
-
-
         self.results = self.tree.clash_collision_many(
             self.select_source.elements,
             self.select_target.elements,
             allow_touching=self.allow_touching,
         )
 
-        #@todo create a real method to pass result for collission
+        # @todo create a real method to pass result for collission
 
         if state == "Final":
             self.manage_result()
@@ -421,6 +418,7 @@ ABOVE_TYPE = Literal[
     "Above_MinToMax", "Above_MinToMin", "Above_MaxToMin", "Above_MaxToMax"
 ]
 
+
 class Above(RuleCheckTwoObjects):
     def __init__(self, source, target, above_type: ABOVE_TYPE, tolerance=0.1):
         super().__init__(source, target)
@@ -432,7 +430,6 @@ class Above(RuleCheckTwoObjects):
         self.tree = ifcopenshell.geom.tree()
         self.select_source.run()
         self.select_target.run()
-
 
         sources_faces = []
         targets_faces = []
@@ -447,7 +444,7 @@ class Above(RuleCheckTwoObjects):
         else:
             target_direction = (0.0, 0.0, 1.0)
 
-        #Check the extrem face of the source
+        # Check the extrem face of the source
         for ifc_file in self.select_source.dict_elements.keys():
             iterator = ifcopenshell.geom.iterator(
                 self.geom_settings,
@@ -473,8 +470,8 @@ class Above(RuleCheckTwoObjects):
 
                     if not iterator.next():
                         break
-        
-        #Check the extrem face of the target
+
+        # Check the extrem face of the target
         for ifc_file in self.select_target.dict_elements.keys():
             iterator = ifcopenshell.geom.iterator(
                 self.geom_settings,
@@ -503,7 +500,7 @@ class Above(RuleCheckTwoObjects):
 
         list_result = []
 
-        #Check if part of extrem faces are close to each other
+        # Check if part of extrem faces are close to each other
         for source_faces in sources_faces:
             for target_faces in targets_faces:
                 for source_face in source_faces["extrem_faces"]:
@@ -533,7 +530,7 @@ class Above(RuleCheckTwoObjects):
 
                         # @todo If the object is above but with an offset in x or y, it will be detected as well.
 
-                        #we only select the worst case scenario.
+                        # we only select the worst case scenario.
                         if dist["distance"] < self.tolerance:
                             if min_distance_found is None:
                                 min_distance_found = dist["distance"]
