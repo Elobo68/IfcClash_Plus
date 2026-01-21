@@ -328,7 +328,7 @@ class RuleCheckOneObject(RuleCheck):
         if isinstance(self.select_grouping, Classification):
             grouping_by_classification(self)
 
-        ...
+        
 
     def run_criticity(self):
         if self.select_criticity == []:
@@ -396,28 +396,86 @@ class RuleCheckTwoObjects(RuleCheck):
 
     def run_grouping(self):
         def grouping_by_entity(self):
-            # @todo Correct this function, the dict grouped is not used at the end. The source_group is useless. This function should produce a list that group several result together.
-            grouped = {}
-
+            group_dict={}
             for result in self.result:
-                group_object = result.source
-                grouped_object = result.target
+                #Source grouping
+                unique_value=result.source.is_a()
+                if unique_value not in group_dict:
+                    thegroupresult=GroupResult()
+                    thegroupresult.add_source(result)
+                    group_dict[unique_value]=thegroupresult
+                else:
+                    group_dict[unique_value].add_source(result)
 
-                if group_object not in grouped:
-                    grouped[group_object] = [grouped_object]
-                grouped[group_object].append(grouped_object)
+                #Target grouping
+                unique_value=result.target.is_a()
+                if unique_value not in group_dict:
+                    thegroupresult=GroupResult()
+                    thegroupresult.add_target(result)
+                    group_dict[unique_value]=thegroupresult
+                else:
+                    group_dict[unique_value].add_target(result)
 
-            for oneobject in self.result:
-                oneobject.source_group = oneobject.source.is_a()
+            for key in group_dict:
+                self.grouped_result.append(group_dict[key])
 
         def grouping_by_property(self):
-            print("TODO")
-            # @todo Grouping by property for 2 objects rules
-            ...
+            group_dict={}
+            for result in self.result:
+                #Source grouping
+                unique_value=get_pset(result.source, name=self.select_grouping.propertySet, prop=self.select_grouping.baseName)
+                unique_value=str(unique_value)
+                print(unique_value)
+                if unique_value not in group_dict:
+                    thegroupresult=GroupResult()
+                    thegroupresult.add_source(result)
+                    group_dict[unique_value]=thegroupresult
+                else:
+                    group_dict[unique_value].add_source(result)
+
+                #Target grouping
+                unique_value=get_pset(result.target, name=self.select_grouping.propertySet, prop=self.select_grouping.baseName)
+                unique_value=str(unique_value)
+                print(unique_value)
+                if unique_value not in group_dict:
+                    thegroupresult=GroupResult()
+                    thegroupresult.add_target(result)
+                    group_dict[unique_value]=thegroupresult
+                else:
+                    group_dict[unique_value].add_target(result)
+
+            for key in group_dict:
+                self.grouped_result.append(group_dict[key])
 
         def grouping_by_attribute(self):
-            print("TODO")
-            # @todo Grouping by attribute for 2 objects rules
+            group_dict={}
+            for result in self.result:
+                #Source
+                unique_value=result.source.get_info()
+                unique_value=unique_value[self.select_grouping.name]
+                unique_value=str(unique_value)
+                print(unique_value)
+                if unique_value not in group_dict:
+                    thegroupresult=GroupResult()
+                    thegroupresult.add_source(result)
+                    group_dict[unique_value]=thegroupresult
+                else:
+                    group_dict[unique_value].add_source(result)
+
+                #Target
+                unique_value=result.target.get_info()
+                unique_value=unique_value[self.select_grouping.name]
+                unique_value=str(unique_value)
+                print(unique_value)
+                if unique_value not in group_dict:
+                    thegroupresult=GroupResult()
+                    thegroupresult.add_target(result)
+                    group_dict[unique_value]=thegroupresult
+                else:
+                    group_dict[unique_value].add_target(result)
+
+            for key in group_dict:
+                self.grouped_result.append(group_dict[key])
             ...
 
         def grouping_by_part_of(self):
@@ -428,11 +486,38 @@ class RuleCheckTwoObjects(RuleCheck):
         def grouping_by_material(self):
             print("TODO")
             # @todo Grouping by material for 2 objects rules
+
+        def grouping_by_classification(self):
+            print("TODO CLASSIFICATION")
             ...
 
         def grouping_by_closeness(self):
             print("TODO")
             # @todo Grouping by closeness for 2 objects rules, reuse IfcClash
+
+        if self.select_grouping is None:
+            return 0
+
+        if self.select_grouping == "ENTITY":
+            grouping_by_entity(self)
+
+        if isinstance(self.select_grouping, Property):
+            grouping_by_property(self)
+
+        if isinstance(self.select_grouping, Attribute):
+            grouping_by_attribute(self)
+
+        if isinstance(self.select_grouping, PartOf):
+            grouping_by_part_of(self)
+
+        if isinstance(self.select_grouping, Material):
+            grouping_by_material(self)
+
+        if self.select_grouping == "CLOSENESS":
+            grouping_by_closeness(self)
+
+        if isinstance(self.select_grouping, Classification):
+            grouping_by_classification(self)
 
     def run_criticity(self):
         if self.select_criticity == []:
