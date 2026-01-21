@@ -96,16 +96,39 @@ IfcSystem Exception
 If we detect collision between two cable carrier, we must check if they are in the same IfcSystem. 
 If they are, that's probably only a modeling problem, not a real world issue.
 
-# Must Rule
-WORK IN PROGRESS
+# Absolute Or Relative Check (Must Rule)
+
+This rule is only working on two objects rules.
+It will always start by a grouping of all result. 
+
+Those group all result will be compared by itself and can be done on every result of a rule. 
+
+Example
+In every room (the grouping), we must find exactly one fire extinguisher. 
+For every door (the grouping), we must have at least two spaces next to it.
+For every Storey, we must have two times the number toilet per number of space.
+For every room (the grouping), we must have more than 10m2 of tiles.  
+
+
 ## Absolute Number of Elements
 
-The number of target elements must be X times the number of source elements. 
+Once grouped, we must have a X number of element in each group.
+
+By example, in each floor, we must have 2 doors.
 
 The relation can be from source.
 
+This will apply on source or target at will, not both of them. 
+
 
 ## Relative Number of Elements
+The number of source element must be X times the number of target elements. 
+
+By example, in each room, we must have at least 2 times more chair than table.
+
+This will be apply on source AND target in order to have a relitve amount of both.
+
+
 
 ## Absolute Quantity
 

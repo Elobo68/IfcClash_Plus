@@ -25,6 +25,7 @@ import multiprocessing
 import numpy as np
 import ifcopenshell.util.placement
 from copy import deepcopy, copy
+from ifcopenshell.util.element import get_pset
 
 
 class RuleFile:
@@ -51,11 +52,9 @@ class RuleFile:
         for path in self.list_ifc_path:
             self.list_ifc_file.append(ifcopenshell.open(path))
 
-
     def to_xml(self, filepath="output.xml"):
         print("to_xml() is not working")
-        #@todo to_xml function
-
+        # @todo to_xml function
 
 
 class RuleFolder:
@@ -167,7 +166,7 @@ class RuleCheck:
         self.id: str = None
         self.type: str = None
 
-        self.tree: list = None  # @todo Determine the exact
+        self.tree: list = None  # @todo Determine the exact position of this parameter
 
         self.result: list[ClashResult] = []
 
@@ -175,6 +174,9 @@ class RuleCheck:
         self.select_grouping: SelectFacet = None
         self.select_criticity: list[SelectFacet] = []
         self.select_actor: list[SelectFacet] = []
+        self.abs_or_rel_check: AbsoluteOrRelativeChecking = None
+
+        self.grouped_result: list[GroupResult] = []
 
     def add_to_tree(self, Select, type_of_tree):
         for ifc_file in Select.dict_elements.keys():
@@ -303,7 +305,6 @@ class RuleCheckOneObject(RuleCheck):
                 if oneresult.source in one_criticity.list_of_elements:
                     oneresult.criticity.append(one_criticity.classification_name)
 
-
     def run_actor(self):
         if self.select_actor == []:
             return None
@@ -345,9 +346,6 @@ class RuleCheckTwoObjects(RuleCheck):
         super().__init__(source)
         self.select_target: Select = target
         self.select_exception: list[SelectRule] = []
-        self.select_must_rule: str = (
-            None  # @todo Create the must rule for the Two Objects
-        )
 
     def produce_select(self):
         # @todo pass the fail or success element.
@@ -363,6 +361,7 @@ class RuleCheckTwoObjects(RuleCheck):
 
     def run_grouping(self):
         def grouping_by_entity(self):
+            # @todo Correct this function, the dict grouped is not used at the end. The source_group is useless. This function should produce a list that group several result together.
             grouped = {}
 
             for result in self.result:
@@ -401,7 +400,6 @@ class RuleCheckTwoObjects(RuleCheck):
             # @todo Grouping by closeness for 2 objects rules, reuse IfcClash
 
     def run_criticity(self):
-
         if self.select_criticity == []:
             return None
 
@@ -477,6 +475,162 @@ class RuleCheckComplex(RuleCheck):
         select_context_C: Select = None
 
 
+####======= Absolute or Relative Checking
+ABSOLUTEORRELATIVECHECK_TYPE = Literal[
+    "Absolute_Number", "Relative_Quantity", "Absolute_Quantity", "Relative_Number"
+]
+
+
+@abstractmethod
+class AbsoluteOrRelativeChecking:
+    def __init__(self, type: ABSOLUTEORRELATIVECHECK_TYPE):
+        self.type = type
+        self.groupby_method: str = (
+            "source"  # In futur, it could be grouped by different means
+        )
+
+    def run(self, list_of_result: list[ClashResult]):
+        # @todo move the grouping in the grouping section
+        if (
+            self.relative_groupby_method == "source"
+            or self.relative_groupby_method == "target"
+        ):
+            group_dict = {}
+            for result in list_of_result:
+                if self.relative_groupby_method == "source":
+                    if result.source not in group_dict:
+                        group_dict[result.source] = {
+                            "target": set(),
+                            "result_group": [],
+                            "source": set(),
+                        }
+                        group_dict[result.source]["source"].add(result.source)
+                        group_dict[result.source]["target"].add(result.target)
+                        group_dict[result.source]["result_group"].append(result)
+                    else:
+                        group_dict[result.source]["target"].add(result.target)
+                        group_dict[result.source]["result_group"].append(result)
+                else:
+                    if result.target not in group_dict:
+                        group_dict[result.target] = {
+                            "target": set(),
+                            "result_group": [],
+                            "source": set(),
+                        }
+                        group_dict[result.target]["target"].add(result.target)
+                        group_dict[result.target]["source"].add(result.source)
+                        group_dict[result.target]["result_group"].append(result)
+
+                    else:
+                        group_dict[result.target]["source"].add(result.source)
+                        group_dict[result.target]["result_group"].append(result)
+
+        list_of_groupresult = []
+        import copy
+        import datetime
+
+        for key in group_dict:
+            if self.relative_groupby_method == "source":
+                groupresult = GroupResult(type=datetime.datetime.now())
+                groupresult.source_set.add(key)
+                groupresult.target_set = group_dict[key]["target"]
+                groupresult.result_group = [group_dict[key]["result_group"]]
+                list_of_groupresult.append(copy.copy(groupresult))
+
+        for onegroupresult in list_of_groupresult:
+            onegroupresult.check_asbolute_number(self)
+
+
+class AbsoluteChecking(AbsoluteOrRelativeChecking):
+    def __init__(self, type: ABSOLUTEORRELATIVECHECK_TYPE):
+        super().__init__(self, type)
+        self.type = type
+
+        self.focus: str = "source"  # source or target
+        self.element_number = None
+        self.operation: str = ""
+        self.aim: float = 0
+
+        self.quantity_pset: str = None
+        self.quantity_prop: str = None
+
+    def number(self, groupresult: GroupResult):
+        if self.focus == "source":
+            self.element_number = len(groupresult.source_set)
+        else:
+            self.element_number = len(groupresult.target_set)
+
+    def quantity(self, groupresult: GroupResult):
+        if self.focus == "source":
+            list = list(groupresult.source_set)
+        else:
+            list = list(groupresult.sourcetarget_set_set)
+
+        for entity in list:
+            # @todo Finish properly the property extraction with all the edge case, we must have at the end a working float to be compared
+            value = get_pset(entity, name=self.quantity_pset, prop=self.quantity_prop)
+            self.element_number = +value
+
+    def eval_check(self, groupresult: GroupResult):
+        if "Quantity" in self.type:
+            self.quantity()
+        if "Number" in self.type:
+            self.number()
+
+        operation_string = (
+            str(self.element_number) + str(self.operation) + str(self.aim)
+        )
+
+        groupresult.abs_or_rel_check = eval(operation_string)
+
+        return groupresult
+
+
+class RelativeChecking(AbsoluteOrRelativeChecking):
+    def __init__(self, type: ABSOLUTEORRELATIVECHECK_TYPE):
+        super().__init__(self, type)
+        self.type = type
+        self.source_operation: str = ""
+        self.operation: str = ""
+        self.target_operation: str = ""
+
+    def number(self, groupresult: GroupResult):
+        self.source_number = len(groupresult.source_set)
+        self.target_number = len(groupresult.target_set)
+
+    def quantity(self, groupresult: GroupResult):
+        source_list = list(groupresult.source_set)
+        target_list = list(groupresult.target_set)
+
+        for entity in source_list:
+            # @todo Finish properly the property extraction with all the edge case, we must have at the end a working float to be compared
+            value = get_pset(entity, name=self.quantity_pset, prop=self.quantity_prop)
+            self.source_number = +value
+
+        for entity in target_list:
+            # @todo Finish properly the property extraction with all the edge case, we must have at the end a working float to be compared
+            value = get_pset(entity, name=self.quantity_pset, prop=self.quantity_prop)
+            self.target_number = +value
+
+    def eval_check(self, groupresult: GroupResult):
+        if "Quantity" in self.type:
+            self.quantity()
+        if "Number" in self.type:
+            self.number()
+
+        source_string = str(groupresult.number_of_source) + self.source_operation
+        target_string = str(groupresult.number_of_target) + self.target_operation
+
+        source_quantity = eval(source_string)
+        target_quantity = eval(target_string)
+
+        operation_string = str(source_quantity) + self.operation + str(target_quantity)
+
+        groupresult.abs_or_rel_check = eval(operation_string)
+
+        return groupresult
+
+
 # ==== Clash Result
 class ClashResult:
     def __init__(self, source, state, type="OneObjectResult"):
@@ -509,9 +663,10 @@ class ClashResultComplex(ClashResult):
 
 # ====== Group Result
 class GroupResult:
-    def __init__(self, source, state, type="GroupResult"):
+    def __init__(self, type="GroupResult"):
         self.id: str
         self.type: str = type
         self.result_group: list[ClashResult] = []
-
-        # @todo Finish the Grouping of result, what is the best way to do that ?
+        self.source_set: set(ifcopenshell.entity_instance) = set()
+        self.target_set: set(ifcopenshell.entity_instance) = set()
+        self.abs_or_rel_check = None
