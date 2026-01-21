@@ -11,5 +11,6 @@ property="Other.RoomTag"
 
 result=attt.get_property([space],name=property)
 result=attt.get_pset(space,name="Other",prop="RoomTag")
+result=space.get_info()
 
 print(result)

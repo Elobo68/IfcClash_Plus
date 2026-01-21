@@ -238,27 +238,55 @@ class RuleCheckOneObject(RuleCheck):
         return dict_return
 
     def run_grouping(self):
+
+        #@todo Should i stick to ids for these selection, it may be a bad idea
+
         def grouping_by_entity(self):
             group_dict={}
             for result in self.result:
-                entity=result.source.is_a()
-                if entity not in group_dict:
+                unique_value=result.source.is_a()
+                if unique_value not in group_dict:
                     thegroupresult=GroupResult()
                     thegroupresult.add_source(result)
-                    group_dict[entity]=thegroupresult
+                    group_dict[unique_value]=thegroupresult
                 else:
-                    group_dict[entity].add_source(result)
+                    group_dict[unique_value].add_source(result)
 
             for key in group_dict:
                 self.grouped_result.append(group_dict[key])
 
         def grouping_by_property(self):
-            print("TODO PROPERTY")
-            ...
+            group_dict={}
+            for result in self.result:
+                unique_value=get_pset(result.source, name=self.select_grouping.propertySet, prop=self.select_grouping.baseName)
+                unique_value=str(unique_value)
+                print(unique_value)
+                if unique_value not in group_dict:
+                    thegroupresult=GroupResult()
+                    thegroupresult.add_source(result)
+                    group_dict[unique_value]=thegroupresult
+                else:
+                    group_dict[unique_value].add_source(result)
+
+            for key in group_dict:
+                self.grouped_result.append(group_dict[key])
 
         def grouping_by_attribute(self):
-            print("TODO ATTRIBUTE")
-            ...
+            group_dict={}
+            for result in self.result:
+                unique_value=result.source.get_info()
+                unique_value=unique_value[self.select_grouping.name]
+                unique_value=str(unique_value)
+                print(unique_value)
+                if unique_value not in group_dict:
+                    thegroupresult=GroupResult()
+                    thegroupresult.add_source(result)
+                    group_dict[unique_value]=thegroupresult
+                else:
+                    group_dict[unique_value].add_source(result)
+
+            for key in group_dict:
+                self.grouped_result.append(group_dict[key])
 
         def grouping_by_part_of(self):
             print("TODO PART OF")
@@ -340,9 +368,6 @@ class RuleCheckOneObject(RuleCheck):
 
     def update_file_info(self, files_path, files):
         self.select_source.update_file_info(files_path, files)
-
-        if self.select_grouping is not None and type(self.select_grouping) is not str:
-            self.select_grouping.update_file_info(files_path, files)
 
         for one_select_criticity in self.select_criticity:
             one_select_criticity.update_file_info(files_path, files)
@@ -453,8 +478,7 @@ class RuleCheckTwoObjects(RuleCheck):
     def update_file_info(self, files_path, files):
         self.select_source.update_file_info(files_path, files)
         self.select_target.update_file_info(files_path, files)
-        if self.select_grouping is not None:
-            self.select_grouping.update_file_info(files_path, files)
+
 
         for one_select_criticity in self.select_criticity:
             one_select_criticity.update_file_info(files_path, files)
