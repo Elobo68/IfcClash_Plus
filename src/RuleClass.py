@@ -535,8 +535,19 @@ class RuleCheckTwoObjects(RuleCheck):
                     oneresult.criticity.append(one_criticity.classification_name)
 
     def run_actor(self):
-        print("TODO ACTOR")
-        # @todo Make actor for two objects rules
+        if self.select_actor == []:
+            return None
+
+        for one_actor in self.select_actor:
+            one_actor.run()
+            one_actor.create_list_of_element()
+
+        for oneresult in self.result:
+            for one_actor in self.select_actor:
+                if oneresult.source in one_actor.list_of_elements:
+                    oneresult.actor.append(one_actor.classification_name)
+                if oneresult.target in one_actor.list_of_elements:
+                    oneresult.actor.append(one_actor.classification_name)
 
     def run_exception(self):
         for one_rule_result in self.result:
