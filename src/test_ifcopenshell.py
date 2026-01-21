@@ -1,13 +1,15 @@
 import ifcopenshell
+import ifcopenshell.util.element as attt
 
+chemin="Ifc_Model/Ifc2s3_Duplex_Electrical.ifc"
+file=ifcopenshell.open(chemin)
 
-ifcfile = ifcopenshell.open("/home/jocelin/Documents/05 - Programmation/IfcClash_Plus/Ifc_Model/Ifc2x3_Duplex_Architecture.ifc")
+spaces=file.by_type("IFCSPACE")
+space=spaces[0]
 
+property="Other.RoomTag"
 
-ifcwall = ifcfile.by_type("IfcWall")
+result=attt.get_property([space],name=property)
+result=attt.get_pset(space,name="Other",prop="RoomTag")
 
-
-if ifcwall[0] in ifcwall:
-    print("Dans la liste")
-
-
+print(result)
