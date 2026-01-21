@@ -22,7 +22,7 @@ The first step is to create new rule to expand possibilities. Those rule can be 
     [Vocabulary](Clash_Expend/Rule.md)
 - Use IDS to select
     The idea is to reuse IDS Facet to select list of elements. I am pretty sure more and more people are starting to use it, so it will be easier for everyone with time.
-- Rule
+- Waterfall of Rule
     The result of a rule will produce a list of object. This list of object can be used in another rule. This can be used to expand the rule functionnality, and complexity.
 - Authorize exception
     There is edge case in every case. You can either select them by hand or reduce them. This aim to reduce the edge case to the bare minimum.
