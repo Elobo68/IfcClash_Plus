@@ -15,7 +15,6 @@ import clash_utils
 import numpy as np
 from typing import Literal
 
-
 # ===========One Object Rule
 class Volume(RuleCheckOneObject):
     from ifcopenshell.util.shape import get_volume
@@ -250,6 +249,7 @@ class Clearance(RuleCheckTwoObjects):
         source_elements = []
         target_elements = []
 
+        #@todo update this script
         for file in self.select_source.dict_elements.keys():
             list = self.select_source.dict_elements[file]
             for element in list:
@@ -288,13 +288,11 @@ class Clearance(RuleCheckTwoObjects):
                 source_object = b_object
                 target_object = a__object
 
-            list_result.append(
+            self.result.append(
                 ClashResultTwoObjects(
                     source=source_object, target=target_object, state=True
                 )
             )
-
-        self.result = list_result
 
         if state == "Final":
             self.manage_result()
@@ -318,13 +316,32 @@ class Collision(RuleCheckTwoObjects):
         self.add_to_tree(self.select_source, "BVH")
         self.add_to_tree(self.select_target, "BVH")
 
-        self.results = self.tree.clash_collision_many(
-            self.select_source.elements,
-            self.select_target.elements,
+        temp_result= self.tree.clash_collision_many(
+            self.select_source.list_of_elements,
+            self.select_target.list_of_elements,
             allow_touching=self.allow_touching,
         )
 
-        # @todo create a real method to pass result for collission
+        for result in temp_result:
+            a_file = ifcopenshell.file.from_pointer(result.a.file_pointer())
+            a__object = a_file.by_id(result.a.id_)
+
+            b__file = ifcopenshell.file.from_pointer(result.b.file_pointer())
+            b_object = b__file.by_id(result.b.id_)
+
+            # source and target are mixed up.
+            if a__object in self.select_source.list_of_elements:
+                source_object = a__object
+                target_object = b_object
+            else:
+                source_object = b_object
+                target_object = a__object
+
+            self.result.append(
+                ClashResultTwoObjects(
+                    source=source_object, target=target_object, state=True
+                )
+            )
 
         if state == "Final":
             self.manage_result()
@@ -350,6 +367,7 @@ class Ray_Check(RuleCheckTwoObjects):
         self.add_to_tree(self.select_target, "UB")
         self.add_to_tree(self.Select_Context_Element)
 
+        #@todo Finish Ray Check
         print("Not working, must be defined")
 
     def Coherence_Check(self):
@@ -417,7 +435,6 @@ class Ray_Check(RuleCheckTwoObjects):
 ABOVE_TYPE = Literal[
     "Above_MinToMax", "Above_MinToMin", "Above_MaxToMin", "Above_MaxToMax"
 ]
-
 
 class Above(RuleCheckTwoObjects):
     def __init__(self, source, target, above_type: ABOVE_TYPE, tolerance=0.1):
