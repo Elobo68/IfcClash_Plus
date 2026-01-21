@@ -222,8 +222,8 @@ class RuleCheck:
 
 
 class RuleCheckOneObject(RuleCheck):
-    def __init__(self):
-        super().__init__()
+    def __init__(self,source):
+        super().__init__(source)
         # To remember exception has no need in One Object because you can chains the rule to get the same result.
 
     def produce_select(self):
@@ -239,8 +239,18 @@ class RuleCheckOneObject(RuleCheck):
 
     def run_grouping(self):
         def grouping_by_entity(self):
-            for oneobject in self.result:
-                oneobject.source_group = oneobject.source.is_a()
+            group_dict={}
+            for result in self.result:
+                entity=result.source.is_a()
+                if entity not in group_dict:
+                    thegroupresult=GroupResult()
+                    thegroupresult.add_source(result)
+                    group_dict[entity]=thegroupresult
+                else:
+                    group_dict[entity].add_source(result)
+
+            for key in group_dict:
+                self.grouped_result.append(group_dict[key])
 
         def grouping_by_property(self):
             print("TODO PROPERTY")
@@ -331,7 +341,7 @@ class RuleCheckOneObject(RuleCheck):
     def update_file_info(self, files_path, files):
         self.select_source.update_file_info(files_path, files)
 
-        if self.select_grouping is not None:
+        if self.select_grouping is not None and type(self.select_grouping) is not str:
             self.select_grouping.update_file_info(files_path, files)
 
         for one_select_criticity in self.select_criticity:
@@ -670,3 +680,16 @@ class GroupResult:
         self.source_set: set(ifcopenshell.entity_instance) = set()
         self.target_set: set(ifcopenshell.entity_instance) = set()
         self.abs_or_rel_check = None
+    def add_source(self,clash_result:ClashResult):
+        self.result_group.append(clash_result)
+        self.source_set.add(clash_result.source)
+
+    def add_target(self,clash_result:ClashResult):
+        self.result_group.append(clash_result)
+        self.target_set.add(clash_result.target)
+
+    def add_source_and_target(self,clash_result:ClashResult):
+        self.result_group.append(clash_result)
+        self.target_set.add(clash_result.target)
+        self.source_set.add(clash_result.source)
+
