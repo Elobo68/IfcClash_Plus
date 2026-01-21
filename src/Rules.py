@@ -22,10 +22,10 @@ class Volume(RuleCheckOneObject):
     from ifcopenshell.util.shape import get_volume
 
     def __init__(self, source, volume_min, volume_max):
+        super().__init__(source)
         self.type = "Volume"
         self.volume_max: float = volume_max
         self.volume_min: float = volume_min
-        self.select_source = source
         self.geom_settings = ifcopenshell.geom.settings()
 
     def run(self, state="Final"):
@@ -65,6 +65,7 @@ class Area(RuleCheckOneObject):
     from ifcopenshell.util.shape import get_area
 
     def __init__(self, source, volume_min, volume_max):
+        super().__init__(source)
         self.type = "Volume"
         self.volume_max: float = volume_max
         self.volume_min: float = volume_min
@@ -106,6 +107,7 @@ class Area(RuleCheckOneObject):
 
 class TopSurface(RuleCheckOneObject):
     def __init__(self, source, surface_min, surface_max):
+        super().__init__(source)
         self.type = "Volume"
         self.surface_max: float = surface_max
         self.surface_min: float = surface_min
