@@ -11,14 +11,24 @@ The idea is to create a lego set of rule that can be used together.
 The first step is to create new rule to expand possibilities. Those rule can be used in any template.
 
 V0.1
-
+Create the main structure of script
 
 V0.2
 - Create Above Rule
-- Create a criticity automatic classification
-- Update the actor automatic classification
-- Create absolute and relative check
+    This rule check if there is nothing above an object.
+
 - Create several grouping function
+    The rule create a list of result. This list of result can be grouped by different way. I implemented several way of grouping object. 
+- Create absolute and relative check
+    By grouping object, you create a sets of object. It's important to check if these set respect a rule. 
+    I must have at least one door intersecting with each space. 
+    I must have at exactly 1 drain below a shower drain. 
+
+- Create a criticity automatic classification
+    Each result can be automaticaly classified in order to determine it's criticity.This could be exporter toward a BCF. 
+- Update the actor automatic classification
+    Each result can be automaticaly classified in order to determine an actor to tag. This could be exporter toward a BCF. 
+
 
 
 
