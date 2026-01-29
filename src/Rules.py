@@ -580,5 +580,56 @@ class Above(RuleCheckTwoObjects):
         if state == "Select":
             self.produce_select()
 
+class Template(RuleCheckTwoObjects):
+    def __init__(self, source, target, tolerance=0.1):
+        super().__init__(source, target)
+        self.tolerance: float = tolerance
+        self.geom_settings = ifcopenshell.geom.settings(USE_WORLD_COORDS=False)
+
+    def run(self, state="Final"):
+
+        if state == "Final":
+            self.manage_result()
+
+        if state == "Select":
+            self.produce_select()
+
+class OBB_Clearance(RuleCheckTwoObjects):
+    def __init__(self, source, target, tolerance=0.1):
+        super().__init__(source, target)
+        self.tolerance: float = tolerance
+        self.geom_settings = ifcopenshell.geom.settings(USE_WORLD_COORDS=False)
+
+    def run(self, state="Final"):
+        self.tree = ifcopenshell.geom.tree()
+        self.select_source.run()
+        self.select_target.run()
+
+        for ifc_file in self.select_source.dict_elements.keys():
+            iterator = ifcopenshell.geom.iterator(
+                self.geom_settings,
+                ifc_file,
+                multiprocessing.cpu_count(),
+                include=self.select_source.dict_elements[ifc_file],
+            )
+
+            if iterator.initialize():
+                while True:
+                    shape = iterator.get()
+                    geom = shape.geometry
+
+
+                    if not iterator.next():
+                        break
+
+
+
+        if state == "Final":
+            self.manage_result()
+
+        if state == "Select":
+            self.produce_select()
+
+
 
 # ===== Complex Rule

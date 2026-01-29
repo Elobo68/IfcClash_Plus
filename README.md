@@ -10,6 +10,18 @@ The idea is to create a lego set of rule that can be used together.
 # Progress
 The first step is to create new rule to expand possibilities. Those rule can be used in any template.
 
+V0.1
+
+
+V0.2
+- Create Above Rule
+- Create a criticity automatic classification
+- Update the actor automatic classification
+- Create absolute and relative check
+- Create several grouping function
+
+
+
 1. Expand number of rule and create the base structure for rules
 2. Create association of rule in python
 3. Studies implementation in ifcclash
@@ -56,8 +68,8 @@ This is my starting point for a new rule.
 
 ## One Object Rule
 * [Volume](Clash_Expend/1ObjectsRules/Orientation) Status:Partial
-* [Area](Clash_Expend/1ObjectsRules/Area) Status:NOK
-* [Top Surface](Clash_Expend/1ObjectsRules/TopSurface) Status:NOK
+* [Area](Clash_Expend/1ObjectsRules/Area) Status:Partial
+* [Top Surface](Clash_Expend/1ObjectsRules/TopSurface) Status:Partial
 * [Bottom Surface](Clash_Expend/1ObjectsRules/BottomSurface) Status:NOK
 * [Lateral Surface](Clash_Expend/1ObjectsRules/LateralSurface) Status:NOK
 * [Projected Surface](Clash_Expend/1ObjectsRules/ProjectedSurface) Status:NOK
@@ -72,3 +84,4 @@ This is my starting point for a new rule.
 
 
 # Todo List
+#@todo Create a function to create the geometry of each function. This can help to vizualise the 
