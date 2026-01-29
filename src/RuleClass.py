@@ -103,9 +103,8 @@ class Select:
         for onefile in self.list_ifc_file:
             self.list_of_elements = self.dict_elements[onefile] + self.list_of_elements
 
-    def update_file_info(self, files_path, files):
-        self.list_ifc_path = files_path
-        self.list_ifc_file = files
+
+
 
 
 class SelectFacet(Select):
@@ -127,6 +126,10 @@ class SelectFacet(Select):
                     self.dict_elements[onefile] = one_applicability.filter(
                         onefile, self.dict_elements[onefile]
                     )
+
+    def update_file_info(self, files_path, files):
+        self.list_ifc_path = files_path
+        self.list_ifc_file = files
 
 
 class SelectRule(Select):
@@ -158,6 +161,11 @@ class SelectRule(Select):
                     self.dict_elements[result.source.file].append(result.source)
             else:
                 self.dict_elements[result.source.file] = [result.source]
+
+    def update_file_info(self, files_path, files):
+        self.list_ifc_path = files_path
+        self.list_ifc_file = files
+        self.rule.update_file_info(files_path,files)
 
 
 @abstractmethod
