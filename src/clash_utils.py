@@ -10,6 +10,9 @@ from ifcopenshell.util.shape_builder import VectorType
 from math import radians, cos
 from ifcopenshell.geom import ShapeElementType, ShapeType
 from typing import Optional, Literal, Union
+from OCC.Core.BRepExtrema import BRepExtrema_DistShapeShape
+from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_MakePolygon, BRepBuilderAPI_MakeFace
+from OCC.Core.gp import gp_Pnt
 
 AXIS_LITERAL = Literal["X", "Y", "Z"]
 
@@ -96,11 +99,6 @@ def get_extreme_faces(
         bottom_faces.append(face)
     
     return bottom_faces
-
-
-from OCC.Core.BRepExtrema import BRepExtrema_DistShapeShape
-from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_MakePolygon, BRepBuilderAPI_MakeFace
-from OCC.Core.gp import gp_Pnt
 
 def triangle_to_occ_face(triangle):
     """Convertit un triangle en face OpenCASCADE"""

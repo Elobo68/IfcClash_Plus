@@ -15,17 +15,15 @@ import clash_utils
 import numpy as np
 from typing import Literal
 
-
-
 # ===========One Object Rule
 class Volume(RuleCheckOneObject):
     from ifcopenshell.util.shape import get_volume
 
     def __init__(self, source, volume_min, volume_max):
+        super().__init__(source)
         self.type = "Volume"
         self.volume_max: float = volume_max
         self.volume_min: float = volume_min
-        self.select_source = source
         self.geom_settings = ifcopenshell.geom.settings()
 
     def run(self, state="Final"):
@@ -65,6 +63,7 @@ class Area(RuleCheckOneObject):
     from ifcopenshell.util.shape import get_area
 
     def __init__(self, source, volume_min, volume_max):
+        super().__init__(source)
         self.type = "Volume"
         self.volume_max: float = volume_max
         self.volume_min: float = volume_min
@@ -106,6 +105,7 @@ class Area(RuleCheckOneObject):
 
 class TopSurface(RuleCheckOneObject):
     def __init__(self, source, surface_min, surface_max):
+        super().__init__(source)
         self.type = "Volume"
         self.surface_max: float = surface_max
         self.surface_min: float = surface_min
@@ -249,6 +249,7 @@ class Clearance(RuleCheckTwoObjects):
         source_elements = []
         target_elements = []
 
+        #@todo update this script
         for file in self.select_source.dict_elements.keys():
             list = self.select_source.dict_elements[file]
             for element in list:
@@ -287,13 +288,11 @@ class Clearance(RuleCheckTwoObjects):
                 source_object = b_object
                 target_object = a__object
 
-            list_result.append(
+            self.result.append(
                 ClashResultTwoObjects(
                     source=source_object, target=target_object, state=True
                 )
             )
-
-        self.result = list_result
 
         if state == "Final":
             self.manage_result()
@@ -317,15 +316,32 @@ class Collision(RuleCheckTwoObjects):
         self.add_to_tree(self.select_source, "BVH")
         self.add_to_tree(self.select_target, "BVH")
 
-
-
-        self.results = self.tree.clash_collision_many(
-            self.select_source.elements,
-            self.select_target.elements,
+        temp_result= self.tree.clash_collision_many(
+            self.select_source.list_of_elements,
+            self.select_target.list_of_elements,
             allow_touching=self.allow_touching,
         )
 
-        #@todo create a real method to pass result for collission
+        for result in temp_result:
+            a_file = ifcopenshell.file.from_pointer(result.a.file_pointer())
+            a__object = a_file.by_id(result.a.id_)
+
+            b__file = ifcopenshell.file.from_pointer(result.b.file_pointer())
+            b_object = b__file.by_id(result.b.id_)
+
+            # source and target are mixed up.
+            if a__object in self.select_source.list_of_elements:
+                source_object = a__object
+                target_object = b_object
+            else:
+                source_object = b_object
+                target_object = a__object
+
+            self.result.append(
+                ClashResultTwoObjects(
+                    source=source_object, target=target_object, state=True
+                )
+            )
 
         if state == "Final":
             self.manage_result()
@@ -351,6 +367,7 @@ class Ray_Check(RuleCheckTwoObjects):
         self.add_to_tree(self.select_target, "UB")
         self.add_to_tree(self.Select_Context_Element)
 
+        #@todo Finish Ray Check
         print("Not working, must be defined")
 
     def Coherence_Check(self):
@@ -431,7 +448,6 @@ class Above(RuleCheckTwoObjects):
         self.select_source.run()
         self.select_target.run()
 
-
         sources_faces = []
         targets_faces = []
 
@@ -445,7 +461,7 @@ class Above(RuleCheckTwoObjects):
         else:
             target_direction = (0.0, 0.0, 1.0)
 
-        #Check the extrem face of the source
+        # Check the extrem face of the source
         for ifc_file in self.select_source.dict_elements.keys():
             iterator = ifcopenshell.geom.iterator(
                 self.geom_settings,
@@ -471,8 +487,8 @@ class Above(RuleCheckTwoObjects):
 
                     if not iterator.next():
                         break
-        
-        #Check the extrem face of the target
+
+        # Check the extrem face of the target
         for ifc_file in self.select_target.dict_elements.keys():
             iterator = ifcopenshell.geom.iterator(
                 self.geom_settings,
@@ -501,7 +517,7 @@ class Above(RuleCheckTwoObjects):
 
         list_result = []
 
-        #Check if part of extrem faces are close to each other
+        # Check if part of extrem faces are close to each other
         for source_faces in sources_faces:
             for target_faces in targets_faces:
                 for source_face in source_faces["extrem_faces"]:
@@ -531,7 +547,7 @@ class Above(RuleCheckTwoObjects):
 
                         # @todo If the object is above but with an offset in x or y, it will be detected as well.
 
-                        #we only select the worst case scenario.
+                        # we only select the worst case scenario.
                         if dist["distance"] < self.tolerance:
                             if min_distance_found is None:
                                 min_distance_found = dist["distance"]
@@ -563,6 +579,57 @@ class Above(RuleCheckTwoObjects):
 
         if state == "Select":
             self.produce_select()
+
+class Template(RuleCheckTwoObjects):
+    def __init__(self, source, target, tolerance=0.1):
+        super().__init__(source, target)
+        self.tolerance: float = tolerance
+        self.geom_settings = ifcopenshell.geom.settings(USE_WORLD_COORDS=False)
+
+    def run(self, state="Final"):
+
+        if state == "Final":
+            self.manage_result()
+
+        if state == "Select":
+            self.produce_select()
+
+class OBB_Clearance(RuleCheckTwoObjects):
+    def __init__(self, source, target, tolerance=0.1):
+        super().__init__(source, target)
+        self.tolerance: float = tolerance
+        self.geom_settings = ifcopenshell.geom.settings(USE_WORLD_COORDS=False)
+
+    def run(self, state="Final"):
+        self.tree = ifcopenshell.geom.tree()
+        self.select_source.run()
+        self.select_target.run()
+
+        for ifc_file in self.select_source.dict_elements.keys():
+            iterator = ifcopenshell.geom.iterator(
+                self.geom_settings,
+                ifc_file,
+                multiprocessing.cpu_count(),
+                include=self.select_source.dict_elements[ifc_file],
+            )
+
+            if iterator.initialize():
+                while True:
+                    shape = iterator.get()
+                    geom = shape.geometry
+
+
+                    if not iterator.next():
+                        break
+
+
+
+        if state == "Final":
+            self.manage_result()
+
+        if state == "Select":
+            self.produce_select()
+
 
 
 # ===== Complex Rule

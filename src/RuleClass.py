@@ -25,6 +25,7 @@ import multiprocessing
 import numpy as np
 import ifcopenshell.util.placement
 from copy import deepcopy, copy
+from ifcopenshell.util.element import get_pset
 
 
 class RuleFile:
@@ -34,12 +35,26 @@ class RuleFile:
         self.list_ifc_file: list[ifcopenshell.file] = []
         self.contains: list = []  # Union of folder or Rule
 
-        self.list_of_results: list[ClashResult] = []
         self.path_to_save: str = None
 
     def run(self):
+        self.load_file()
+        self.update_file_info()
+
         for rulecheck_or_folder in self.contains:
             rulecheck_or_folder.run()
+
+    def update_file_info(self):
+        for rule_or_file in self.contains:
+            rule_or_file.update_file_info(self.list_ifc_path, self.list_ifc_file)
+
+    def load_file(self):
+        for path in self.list_ifc_path:
+            self.list_ifc_file.append(ifcopenshell.open(path))
+
+    def to_xml(self, filepath="output.xml"):
+        print("to_xml() is not working")
+        # @todo to_xml function
 
 
 class RuleFolder:
@@ -62,6 +77,10 @@ class RuleFolder:
         else:
             return False
 
+    def update_file_info(self, files_path, files):
+        for rule_or_file in self.contains:
+            rule_or_file.update_file_info(files_path, files)
+
 
 class Select:
     def __init__(self):
@@ -69,19 +88,23 @@ class Select:
         self.list_ifc_path: list[str] = []
         self.list_ifc_file: list[ifcopenshell.file] = []
         self.dict_elements: dict = {}
+        self.list_of_elements: list[ifcopenshell.entity_instance] = []
 
     def run(self):
         pass
-
-    def Load_File(self):
-        for path in self.list_ifc_path:
-            self.list_ifc_file.append(ifcopenshell.open(path))
 
     def initialize_dict(self):
         Dict = dict()
         for onefile in self.list_ifc_file:
             Dict[onefile] = None
         self.dict_elements = Dict
+
+    def create_list_of_element(self):
+        for onefile in self.list_ifc_file:
+            self.list_of_elements = self.dict_elements[onefile] + self.list_of_elements
+
+
+
 
 
 class SelectFacet(Select):
@@ -92,7 +115,6 @@ class SelectFacet(Select):
         self.classification_name: str = ""
 
     def run(self):
-        self.Load_File()
         self.initialize_dict()
 
         for onefile in self.list_ifc_file:
@@ -104,6 +126,10 @@ class SelectFacet(Select):
                     self.dict_elements[onefile] = one_applicability.filter(
                         onefile, self.dict_elements[onefile]
                     )
+
+    def update_file_info(self, files_path, files):
+        self.list_ifc_path = files_path
+        self.list_ifc_file = files
 
 
 class SelectRule(Select):
@@ -136,21 +162,29 @@ class SelectRule(Select):
             else:
                 self.dict_elements[result.source.file] = [result.source]
 
+    def update_file_info(self, files_path, files):
+        self.list_ifc_path = files_path
+        self.list_ifc_file = files
+        self.rule.update_file_info(files_path,files)
+
 
 @abstractmethod
 class RuleCheck:
-    def __init__(self,source):
+    def __init__(self, source):
         self.id: str = None
         self.type: str = None
 
-        self.tree: list = None  # @todo Determine the exact
+        self.tree: list = None  # @todo Determine the exact position of this parameter
 
         self.result: list[ClashResult] = []
 
         self.select_source: Select = source
         self.select_grouping: SelectFacet = None
-        self.select_criticity: list[Select] = []
-        self.select_actor: list[Select] = []
+        self.select_criticity: list[SelectFacet] = []
+        self.select_actor: list[SelectFacet] = []
+        self.abs_or_rel_check: AbsoluteOrRelativeChecking = None
+
+        self.grouped_result: list[GroupResult] = []
 
     def add_to_tree(self, Select, type_of_tree):
         for ifc_file in Select.dict_elements.keys():
@@ -196,8 +230,8 @@ class RuleCheck:
 
 
 class RuleCheckOneObject(RuleCheck):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, source):
+        super().__init__(source)
         # To remember exception has no need in One Object because you can chains the rule to get the same result.
 
     def produce_select(self):
@@ -212,17 +246,59 @@ class RuleCheckOneObject(RuleCheck):
         return dict_return
 
     def run_grouping(self):
+        # @todo Should i stick to ids for these selection, it may be a bad idea
+        # grouping by source and select is not relevant here
+
         def grouping_by_entity(self):
-            for oneobject in self.result:
-                oneobject.source_group = oneobject.source.is_a()
+            group_dict = {}
+            for result in self.result:
+                unique_value = result.source.is_a()
+                if unique_value not in group_dict:
+                    thegroupresult = GroupResult()
+                    thegroupresult.add_source(result)
+                    group_dict[unique_value] = thegroupresult
+                else:
+                    group_dict[unique_value].add_source(result)
+
+            for key in group_dict:
+                self.grouped_result.append(group_dict[key])
 
         def grouping_by_property(self):
-            print("TODO PROPERTY")
-            ...
+            group_dict = {}
+            for result in self.result:
+                unique_value = get_pset(
+                    result.source,
+                    name=self.select_grouping.propertySet,
+                    prop=self.select_grouping.baseName,
+                )
+                unique_value = str(unique_value)
+                print(unique_value)
+                if unique_value not in group_dict:
+                    thegroupresult = GroupResult()
+                    thegroupresult.add_source(result)
+                    group_dict[unique_value] = thegroupresult
+                else:
+                    group_dict[unique_value].add_source(result)
+
+            for key in group_dict:
+                self.grouped_result.append(group_dict[key])
 
         def grouping_by_attribute(self):
-            print("TODO ATTRIBUTE")
-            ...
+            group_dict = {}
+            for result in self.result:
+                unique_value = result.source.get_info()
+                unique_value = unique_value[self.select_grouping.name]
+                unique_value = str(unique_value)
+                print(unique_value)
+                if unique_value not in group_dict:
+                    thegroupresult = GroupResult()
+                    thegroupresult.add_source(result)
+                    group_dict[unique_value] = thegroupresult
+                else:
+                    group_dict[unique_value].add_source(result)
+
+            for key in group_dict:
+                self.grouped_result.append(group_dict[key])
 
         def grouping_by_part_of(self):
             print("TODO PART OF")
@@ -264,25 +340,18 @@ class RuleCheckOneObject(RuleCheck):
         if isinstance(self.select_grouping, Classification):
             grouping_by_classification(self)
 
-        ...
-
     def run_criticity(self):
         if self.select_criticity == []:
             return None
 
-        for result in self.result:
-            filter_flag = True
-            for Facet in self.select_criticity.applicability:
-                ListFiltering = Facet.filter(
-                    ifc_file=result.source.file, elements=result.source
-                )
+        for one_criticity in self.select_criticity:
+            one_criticity.run()
+            one_criticity.create_list_of_element()
 
-                if ListFiltering == []:
-                    filter_flag = False
-                    break
-
-            if filter_flag:
-                result.criticity.append(self.select_criticity.classification_name)
+        for oneresult in self.result:
+            for one_criticity in self.select_criticity:
+                if oneresult.source in one_criticity.list_of_elements:
+                    oneresult.criticity.append(one_criticity.classification_name)
 
     def run_actor(self):
         if self.select_actor == []:
@@ -302,21 +371,41 @@ class RuleCheckOneObject(RuleCheck):
             if filter_flag:
                 result.actor.append(self.select_actor.classification_name)
 
+
+    def run_abs_or_rel(self):
+        if self.abs_or_rel_check is None:
+            return None
+        
+        self.abs_or_rel_check.run()
+
+        return True
+
+
     def manage_result(self):
-        self.run_grouping()
+        
         self.run_criticity()
         self.run_actor()
 
+        # Only one is possible, it either grouping or must. Not both of them
+        if self.run_abs_or_rel() is None:
+            self.run_grouping()
+
+
+    def update_file_info(self, files_path, files):
+        self.select_source.update_file_info(files_path, files)
+
+        for one_select_criticity in self.select_criticity:
+            one_select_criticity.update_file_info(files_path, files)
+
+        for one_select_actor in self.select_actor:
+            one_select_actor.update_file_info(files_path, files)
+
 
 class RuleCheckTwoObjects(RuleCheck):
-    def __init__(self,source,target):
+    def __init__(self, source, target):
         super().__init__(source)
         self.select_target: Select = target
-        self.select_focus_filter: Select = None
         self.select_exception: list[SelectRule] = []
-        self.select_must_rule: str = (
-            None  # @todo Create the must rule for the Two Objects
-        )
 
     def produce_select(self):
         # @todo pass the fail or success element.
@@ -332,40 +421,185 @@ class RuleCheckTwoObjects(RuleCheck):
 
     def run_grouping(self):
         def grouping_by_entity(self):
-            for oneobject in self.result:
-                oneobject.source_group = oneobject.source.is_a()
+            group_dict = {}
+            for result in self.result:
+                # Source grouping
+                unique_value = result.source.is_a()
+                if unique_value not in group_dict:
+                    thegroupresult = GroupResult()
+                    thegroupresult.add_source(result)
+                    group_dict[unique_value] = thegroupresult
+                else:
+                    group_dict[unique_value].add_source(result)
+
+                # Target grouping
+                unique_value = result.target.is_a()
+                if unique_value not in group_dict:
+                    thegroupresult = GroupResult()
+                    thegroupresult.add_target(result)
+                    group_dict[unique_value] = thegroupresult
+                else:
+                    group_dict[unique_value].add_target(result)
+
+            for key in group_dict:
+                self.grouped_result.append(group_dict[key])
 
         def grouping_by_property(self):
-            print("TODO")
-            #@todo Grouping by property for 2 objects rules
-            ...
+            group_dict = {}
+            for result in self.result:
+                # Source grouping
+                unique_value = get_pset(
+                    result.source,
+                    name=self.select_grouping.propertySet,
+                    prop=self.select_grouping.baseName,
+                )
+                unique_value = str(unique_value)
+                print(unique_value)
+                if unique_value not in group_dict:
+                    thegroupresult = GroupResult()
+                    thegroupresult.add_source(result)
+                    group_dict[unique_value] = thegroupresult
+                else:
+                    group_dict[unique_value].add_source(result)
+
+                # Target grouping
+                unique_value = get_pset(
+                    result.target,
+                    name=self.select_grouping.propertySet,
+                    prop=self.select_grouping.baseName,
+                )
+                unique_value = str(unique_value)
+                print(unique_value)
+                if unique_value not in group_dict:
+                    thegroupresult = GroupResult()
+                    thegroupresult.add_target(result)
+                    group_dict[unique_value] = thegroupresult
+                else:
+                    group_dict[unique_value].add_target(result)
+
+            for key in group_dict:
+                self.grouped_result.append(group_dict[key])
 
         def grouping_by_attribute(self):
-            print("TODO")
-            #@todo Grouping by attribute for 2 objects rules
+            group_dict = {}
+            for result in self.result:
+                # Source
+                unique_value = result.source.get_info()
+                unique_value = unique_value[self.select_grouping.name]
+                unique_value = str(unique_value)
+                print(unique_value)
+                if unique_value not in group_dict:
+                    thegroupresult = GroupResult()
+                    thegroupresult.add_source(result)
+                    group_dict[unique_value] = thegroupresult
+                else:
+                    group_dict[unique_value].add_source(result)
+
+                # Target
+                unique_value = result.target.get_info()
+                unique_value = unique_value[self.select_grouping.name]
+                unique_value = str(unique_value)
+                print(unique_value)
+                if unique_value not in group_dict:
+                    thegroupresult = GroupResult()
+                    thegroupresult.add_target(result)
+                    group_dict[unique_value] = thegroupresult
+                else:
+                    group_dict[unique_value].add_target(result)
+
+            for key in group_dict:
+                self.grouped_result.append(group_dict[key])
             ...
 
         def grouping_by_part_of(self):
             print("TODO")
-            #@todo Grouping by part of for 2 objects rules
+            # @todo Grouping by part of for 2 objects rules
             ...
 
         def grouping_by_material(self):
             print("TODO")
-            #@todo Grouping by material for 2 objects rules
+            # @todo Grouping by material for 2 objects rules
+
+        def grouping_by_classification(self):
+            print("TODO CLASSIFICATION")
             ...
 
         def grouping_by_closeness(self):
             print("TODO")
-            #@todo Grouping by closeness for 2 objects rules, reuse IfcClash
+            # @todo Grouping by closeness for 2 objects rules, reuse IfcClash
+
+        def grouping_by_object(self,source_or_target):
+            group_dict = {}
+            for result in self.result:
+
+                if source_or_target=="source":
+                    unique_value = result.source
+                if source_or_target=="target":
+                    unique_value = result.target
+                
+                if unique_value not in group_dict:
+                    thegroupresult = GroupResult()
+                    thegroupresult.add_source_and_target(result)
+                    group_dict[unique_value] = thegroupresult
+                else:
+                    group_dict[unique_value].add_source_and_target(result)
+
+            for key in group_dict:
+                self.grouped_result.append(group_dict[key])
+
+        if self.select_grouping is None:
+            return 0
+
+        if self.select_grouping == "ENTITY":
+            grouping_by_entity(self)
+
+        if isinstance(self.select_grouping, Property):
+            grouping_by_property(self)
+
+        if isinstance(self.select_grouping, Attribute):
+            grouping_by_attribute(self)
+
+        if isinstance(self.select_grouping, PartOf):
+            grouping_by_part_of(self)
+
+        if isinstance(self.select_grouping, Material):
+            grouping_by_material(self)
+
+        if self.select_grouping == "CLOSENESS":
+            grouping_by_closeness(self)
+
+        if isinstance(self.select_grouping, Classification):
+            grouping_by_classification(self)
 
     def run_criticity(self):
-        print("TODO CRITICITY")
-        #@todo Make criticty for two objects
+        if self.select_criticity == []:
+            return None
+
+        for one_criticity in self.select_criticity:
+            one_criticity.run()
+            one_criticity.create_list_of_element()
+
+        for oneresult in self.result:
+            for one_criticity in self.select_criticity:
+                if oneresult.source in one_criticity.list_of_elements:
+                    oneresult.criticity.append(one_criticity.classification_name)
+                if oneresult.target in one_criticity.list_of_elements:
+                    oneresult.criticity.append(one_criticity.classification_name)
 
     def run_actor(self):
-        print("TODO ACTOR")
-        #@todo Make actor for two objects rules
+        if self.select_actor == []:
+            return None
+
+        for one_actor in self.select_actor:
+            one_actor.run()
+            one_actor.create_list_of_element()
+
+        for oneresult in self.result:
+            for one_actor in self.select_actor:
+                if oneresult.source in one_actor.list_of_elements:
+                    oneresult.actor.append(one_actor.classification_name)
+                if oneresult.target in one_actor.list_of_elements:
+                    oneresult.actor.append(one_actor.classification_name)
 
     def run_exception(self):
         for one_rule_result in self.result:
@@ -385,16 +619,41 @@ class RuleCheckTwoObjects(RuleCheck):
                         one_rule_result.state = False
                         break
 
-    def run_must(self):
-        print("TODO MUST")
-        #@todo create the must for the two objects rules
+    def run_abs_or_rel(self):
+        if self.abs_or_rel_check is None:
+            return None
+        
+
+        self.run_grouping(self.abs_or_rel_check.groupby_method)
+        
+        
+        self.abs_or_rel_check.run(self.grouped_result)
+
+        return True
+
+
+    def update_file_info(self, files_path, files):
+        self.select_source.update_file_info(files_path, files)
+        self.select_target.update_file_info(files_path, files)
+
+        for one_select_criticity in self.select_criticity:
+            one_select_criticity.update_file_info(files_path, files)
+
+        for one_select_actor in self.select_actor:
+            one_select_actor.update_file_info(files_path, files)
+
+        for one_select_exception in self.select_exception:
+            one_select_exception.update_file_info(files_path, files)
 
     def manage_result(self):
         self.run_exception()
-        self.run_must()
-        self.run_grouping()
+
         self.run_criticity()
         self.run_actor()
+
+        # Only one is possible, it either grouping or must. Not both of them
+        if self.run_abs_or_rel() is None:
+            self.run_grouping()
 
 
 class RuleCheckComplex(RuleCheck):
@@ -406,17 +665,125 @@ class RuleCheckComplex(RuleCheck):
         select_context_C: Select = None
 
 
+####======= Absolute or Relative Checking
+ABSOLUTEORRELATIVECHECK_TYPE = Literal[
+    "Absolute_Number", "Relative_Quantity", "Absolute_Quantity", "Relative_Number"
+]
+
+
+@abstractmethod
+class AbsoluteOrRelativeChecking:
+    def __init__(self, type: ABSOLUTEORRELATIVECHECK_TYPE):
+        self.type = type
+        self.groupby_method: str = (
+            "source"  # In futur, it could be grouped by different means
+        )
+
+    def run(self, list_of_result: list[GroupResult]):
+        for onegroupresult in list_of_result:
+            self.eval_check(onegroupresult)
+
+
+class AbsoluteChecking(AbsoluteOrRelativeChecking):
+    def __init__(self, type: ABSOLUTEORRELATIVECHECK_TYPE):
+        super().__init__(self, type)
+        self.type = type
+
+        self.focus: str = "source"  # source or target
+        self.element_number = None
+        self.operation: str = ""
+        self.aim: float = 0
+
+        self.quantity_pset: str = None
+        self.quantity_prop: str = None
+
+    def number(self, groupresult: GroupResult):
+        if self.focus == "source":
+            self.element_number = len(groupresult.source_set)
+        else:
+            self.element_number = len(groupresult.target_set)
+
+    def quantity(self, groupresult: GroupResult):
+        if self.focus == "source":
+            list = list(groupresult.source_set)
+        else:
+            list = list(groupresult.sourcetarget_set_set)
+
+        for entity in list:
+            # @todo Finish properly the property extraction with all the edge case, we must have at the end a working float to be compared
+            value = get_pset(entity, name=self.quantity_pset, prop=self.quantity_prop)
+            self.element_number = +value
+
+    def eval_check(self, groupresult: GroupResult):
+        if "Quantity" in self.type:
+            self.quantity()
+        if "Number" in self.type:
+            self.number()
+
+        operation_string = (
+            str(self.element_number) + str(self.operation) + str(self.aim)
+        )
+
+        groupresult.abs_or_rel_check = eval(operation_string)
+
+        return groupresult
+
+
+class RelativeChecking(AbsoluteOrRelativeChecking):
+    def __init__(self, type: ABSOLUTEORRELATIVECHECK_TYPE):
+        super().__init__(self, type)
+        self.type = type
+        self.source_operation: str = ""
+        self.operation: str = ""
+        self.target_operation: str = ""
+
+    def number(self, groupresult: GroupResult):
+        self.source_number = len(groupresult.source_set)
+        self.target_number = len(groupresult.target_set)
+
+    def quantity(self, groupresult: GroupResult):
+        source_list = list(groupresult.source_set)
+        target_list = list(groupresult.target_set)
+
+        for entity in source_list:
+            # @todo Finish properly the property extraction with all the edge case, we must have at the end a working float to be compared
+            value = get_pset(entity, name=self.quantity_pset, prop=self.quantity_prop)
+            self.source_number = +value
+
+        for entity in target_list:
+            # @todo Finish properly the property extraction with all the edge case, we must have at the end a working float to be compared
+            value = get_pset(entity, name=self.quantity_pset, prop=self.quantity_prop)
+            self.target_number = +value
+
+    def eval_check(self, groupresult: GroupResult):
+        if "Quantity" in self.type:
+            self.quantity()
+        if "Number" in self.type:
+            self.number()
+
+        source_string = str(groupresult.number_of_source) + self.source_operation
+        target_string = str(groupresult.number_of_target) + self.target_operation
+
+        source_quantity = eval(source_string)
+        target_quantity = eval(target_string)
+
+        operation_string = str(source_quantity) + self.operation + str(target_quantity)
+
+        groupresult.abs_or_rel_check = eval(operation_string)
+
+        return groupresult
+
+
 # ==== Clash Result
 class ClashResult:
-    def __init__(self, source, state, type="SingleResult"):
+    def __init__(self, source, state, type="OneObjectResult"):
         self.id: str
         self.type: str = type
         self.source: ifcopenshell.entity_instance = source
-        self.source_group: str = None
 
         self.status: bool = state
-        self.criticity: str = []
-        self.actor: str = []
+        self.criticity: list[str] = []
+        self.actor: list[str] = []
 
 
 class ClashResultOneObject(ClashResult):
@@ -425,7 +792,7 @@ class ClashResultOneObject(ClashResult):
 
 
 class ClashResultTwoObjects(ClashResult):
-    def __init__(self, source, target, state, type="SingleResult"):
+    def __init__(self, source, target, state, type="TwoObjectsResult"):
         super().__init__(source, state, type)
         self.target: ifcopenshell.entity_instance = target
 
@@ -435,3 +802,27 @@ class ClashResultComplex(ClashResult):
         super().__init__()
         self.target: ifcopenshell.entity_instance = None
         self.context: ifcopenshell.entity_instance = None
+
+
+# ====== Group Result
+class GroupResult:
+    def __init__(self, type="GroupResult"):
+        self.id: str
+        self.type: str = type
+        self.result_group: list[ClashResult] = []
+        self.source_set: set(ifcopenshell.entity_instance) = set()
+        self.target_set: set(ifcopenshell.entity_instance) = set()
+        self.abs_or_rel_check = None
+
+    def add_source(self, clash_result: ClashResult):
+        self.result_group.append(clash_result)
+        self.source_set.add(clash_result.source)
+
+    def add_target(self, clash_result: ClashResult):
+        self.result_group.append(clash_result)
+        self.target_set.add(clash_result.target)
+
+    def add_source_and_target(self, clash_result: ClashResult):
+        self.result_group.append(clash_result)
+        self.target_set.add(clash_result.target)
+        self.source_set.add(clash_result.source)

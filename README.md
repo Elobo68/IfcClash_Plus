@@ -10,6 +10,28 @@ The idea is to create a lego set of rule that can be used together.
 # Progress
 The first step is to create new rule to expand possibilities. Those rule can be used in any template.
 
+V0.1
+Create the main structure of script
+
+V0.2
+- Create Above Rule
+    This rule check if there is nothing above an object.
+
+- Create several grouping function
+    The rule create a list of result. This list of result can be grouped by different way. I implemented several way of grouping object. 
+- Create absolute and relative check
+    By grouping object, you create a sets of object. It's important to check if these set respect a rule. 
+    I must have at least one door intersecting with each space. 
+    I must have at exactly 1 drain below a shower drain. 
+
+- Create a criticity automatic classification
+    Each result can be automaticaly classified in order to determine it's criticity.This could be exporter toward a BCF. 
+- Update the actor automatic classification
+    Each result can be automaticaly classified in order to determine an actor to tag. This could be exporter toward a BCF. 
+
+
+
+
 1. Expand number of rule and create the base structure for rules
 2. Create association of rule in python
 3. Studies implementation in ifcclash
@@ -22,7 +44,7 @@ The first step is to create new rule to expand possibilities. Those rule can be 
     [Vocabulary](Clash_Expend/Rule.md)
 - Use IDS to select
     The idea is to reuse IDS Facet to select list of elements. I am pretty sure more and more people are starting to use it, so it will be easier for everyone with time.
-- Rule
+- Waterfall of Rule
     The result of a rule will produce a list of object. This list of object can be used in another rule. This can be used to expand the rule functionnality, and complexity.
 - Authorize exception
     There is edge case in every case. You can either select them by hand or reduce them. This aim to reduce the edge case to the bare minimum.
@@ -44,7 +66,7 @@ This is my starting point for a new rule.
 [Clearance Above Object](Clash_Expend/2ObjectsRules/ClearanceAbove)
 
 ## Two Object Rule
-* [Clearance Above Object](Clash_Expend/2ObjectsRules/ClearanceAbove) Status:NOK
+* [Clearance Above Object](Clash_Expend/2ObjectsRules/ClearanceAbove) Status:OK
 * [Clearance Next To Object](Clash_Expend/2ObjectsRules/ClearanceNextTo) Status:NOK
 * [Clearance Below Object](Clash_Expend/2ObjectsRules/ClearanceBelow) Status:NOK
 * [Cleareance OBB](Clash_Expend/2ObjectsRules/ClearanceOBB) Status:NOK
@@ -56,12 +78,11 @@ This is my starting point for a new rule.
 
 ## One Object Rule
 * [Volume](Clash_Expend/1ObjectsRules/Orientation) Status:Partial
-* [Area](Clash_Expend/1ObjectsRules/Area) Status:NOK
-* [Top Surface](Clash_Expend/1ObjectsRules/TopSurface) Status:NOK
+* [Area](Clash_Expend/1ObjectsRules/Area) Status:Partial
+* [Top Surface](Clash_Expend/1ObjectsRules/TopSurface) Status:Partial
 * [Bottom Surface](Clash_Expend/1ObjectsRules/BottomSurface) Status:NOK
 * [Lateral Surface](Clash_Expend/1ObjectsRules/LateralSurface) Status:NOK
 * [Projected Surface](Clash_Expend/1ObjectsRules/ProjectedSurface) Status:NOK
-
 * [Orientation](Clash_Expend/1ObjectsRules/Orientation) Status:NOK
 
 
@@ -73,6 +94,4 @@ This is my starting point for a new rule.
 
 
 # Todo List
-
-Create MUST Rule 
-Create Actor 
+#@todo Create a function to create the geometry of each function. This can help to vizualise the 
