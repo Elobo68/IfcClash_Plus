@@ -366,8 +366,30 @@ def create_RayCheck_clash():
         if result.source==result.target:
             continue
 
+def create_display():
+    Chemin = "Ifc_Model/Ifc2x3_Duplex_Architecture.ifc"
+    OneRuleFile = RuleClass.RuleFile()
+    OneRuleFile.list_ifc_path= [Chemin]
+
+    Source_Select = SelectFacet()
+    Source_Facet = ids.Entity(name="IFCSLAB")
+    Source_Select.applicability = [Source_Facet]
+
+
+    Source_Select2 = SelectFacet()
+    Source_Facet2 = ids.Entity(name="IFCDOOR")
+    Source_Select2.applicability = [Source_Facet2]
+
+    rule=OBB_Above(Source_Select,Source_Select2,0.2)
+
+    OneRuleFile.contains=[rule]
+    OneRuleFile.load_file()
+    OneRuleFile.update_file_info()
+
+
+    rule.display()
 
 
 
 if __name__ == "__main__":
-    create_RayCheck_clash()
+    create_display()

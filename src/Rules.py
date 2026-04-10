@@ -14,7 +14,7 @@ from ifcopenshell.util.shape import (
 import clash_utils
 import numpy as np
 from typing import Literal
-from CustomOBB import create_obb_via_pca
+from CustomOBB import create_obb_from_TopoDs_Shape_via_pca
 from OCC.Core.BRepExtrema import BRepExtrema_DistShapeShape
 from RuleClass import Select
 import ifcopenshell.util.placement
@@ -794,7 +794,6 @@ class Below(RuleCheckTwoObjects): #@todo Check this rule
         if state == "Select":
             self.produce_select()
 
-
 class Template(RuleCheckTwoObjects):
     def __init__(self, source, target, tolerance=0.1):
         super().__init__(source, target)
@@ -839,9 +838,9 @@ class OBB_Above(RuleCheckTwoObjects):
                     entity = ifc_file.by_id(shape.data.id)
 
                     # Create OBB for the source object (detection zone)
-                    obb = create_obb_via_pca(geom)
+                    obb = create_obb_from_TopoDs_Shape_via_pca(geom)
                     clash_obb = obb.detach_top_by_extrude(self.tolerance)
-                    compound = clash_obb.to_compound()
+                    compound = clash_obb.to_TopoDS_Compound()
                     source_obbs.append({"entity": entity, "geom": compound})
 
                     if not iterator.next():
@@ -897,6 +896,42 @@ class OBB_Above(RuleCheckTwoObjects):
         if state == "Select":
             self.produce_select()
 
+    def _display_specific(self):
+        from OCC.Core.AIS import AIS_Shape
+        from OCC.Core.Quantity import Quantity_Color, Quantity_TOC_RGB
+        
+        settings = ifcopenshell.geom.settings()
+        settings.set("USE_WORLD_COORDS", True)
+        #settings.set("use-python-opencascade", True)
+
+        # Check the extrem face of the source
+        for ifc_file in self.select_source.dict_elements.keys():
+            iterator = ifcopenshell.geom.iterator(
+                self.geom_settings,
+                ifc_file,
+                multiprocessing.cpu_count(),
+                include=self.select_source.dict_elements[ifc_file],
+            )
+
+            if iterator.initialize():
+                while True:
+                    shape = iterator.get()
+                    geom = shape.geometry
+
+
+                    obb = create_obb_from_TopoDs_Shape_via_pca(geom)
+                    clash_obb = obb.detach_top_by_extrude(self.tolerance)
+                    compound = clash_obb.to_TopoDS_Compound()
+                    ais_shape=AIS_Shape(compound)
+                    green_color = Quantity_Color(0.0, 1.0, 0.0, Quantity_TOC_RGB)
+                    ais_shape.SetColor(green_color)
+                    ais_shape.SetTransparency(0.2)
+                    self.display.Context.Display(ais_shape, True)
+
+
+                    if not iterator.next():
+                        break
+
 class OBB_Below(RuleCheckTwoObjects):
     def __init__(self, source, target, tolerance):
         super().__init__(source, target)
@@ -926,7 +961,7 @@ class OBB_Below(RuleCheckTwoObjects):
                     entity = ifc_file.by_id(shape.data.id)
 
                     # Create OBB for the source object (detection zone)
-                    obb = create_obb_via_pca(geom)
+                    obb = create_obb_from_TopoDs_Shape_via_pca(geom)
                     clash_obb = obb.detach_bottom_by_extrude(self.tolerance)
                     compound = clash_obb.to_compound()
                     source_obbs.append({"entity": entity, "geom": compound})
@@ -984,7 +1019,6 @@ class OBB_Below(RuleCheckTwoObjects):
         if state == "Select":
             self.produce_select()
 
-
 DIRECTION_METHOD = Literal[
     "Wide", "Narrow"]
 
@@ -1018,7 +1052,7 @@ class OBB_Front_And_Back(RuleCheckTwoObjects):
                     entity = ifc_file.by_id(shape.data.id)
 
                     # Create OBB for the source object (detection zone)
-                    obb = create_obb_via_pca(geom)
+                    obb = create_obb_from_TopoDs_Shape_via_pca(geom)
                     main_directions=obb.get_two_main_direction_OBB_shape(self.direction_method)
                     clash_obb_1=obb.detach_side_by_extrude(main_directions[0],self.tolerance)
                     clash_obb_2=obb.detach_side_by_extrude(main_directions[0],self.tolerance)

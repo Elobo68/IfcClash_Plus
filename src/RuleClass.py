@@ -37,7 +37,7 @@ class RuleFile:
 
         self.path_to_save: str = None
 
-    def run(self):
+    def run(self): #@todo improve this loading thing
         self.load_file()
         self.update_file_info()
 
@@ -644,6 +644,82 @@ class RuleCheckTwoObjects(RuleCheck):
         # Only one is possible, it either grouping or must. Not both of them
         if self.run_abs_or_rel() is None:
             self.run_grouping()
+
+    def _display_generic(self):
+        from OCC.Display.SimpleGui import init_display
+        from OCC.Core.AIS import AIS_Shape
+        from OCC.Core.Quantity import Quantity_Color, Quantity_TOC_RGB
+        self.select_source.run()
+        self.select_target.run()
+
+        self.display, self.start_display, add_menu, add_function = init_display()
+
+
+        settings = ifcopenshell.geom.settings()
+        settings.set("USE_WORLD_COORDS", True)
+        settings.set("use-python-opencascade", True)
+
+        # Check the extrem face of the source
+        for ifc_file in self.select_source.dict_elements.keys():
+            iterator = ifcopenshell.geom.iterator(
+                self.geom_settings,
+                ifc_file,
+                multiprocessing.cpu_count(),
+                include=self.select_source.dict_elements[ifc_file],
+            )
+
+            if iterator.initialize():
+                while True:
+                    shape = iterator.get()
+                    geom = shape.geometry
+
+
+                    ais_shape=AIS_Shape(geom)
+                    red_color = Quantity_Color(1.0, 0.0, 0.0, Quantity_TOC_RGB)
+                    ais_shape.SetColor(red_color)
+                    ais_shape.SetTransparency(0.2)
+                    self.display.Context.Display(ais_shape, True)
+
+
+                    if not iterator.next():
+                        break
+
+        for ifc_file in self.select_target.dict_elements.keys():
+            iterator = ifcopenshell.geom.iterator(
+                self.geom_settings,
+                ifc_file,
+                multiprocessing.cpu_count(),
+                include=self.select_target.dict_elements[ifc_file],
+            )
+
+            if iterator.initialize():
+                while True:
+                    shape = iterator.get()
+                    geom = shape.geometry
+
+
+                    ais_shape=AIS_Shape(geom)
+                    blue_color = Quantity_Color(0.0, 0.0, 1.0, Quantity_TOC_RGB)
+                    ais_shape.SetColor(blue_color)
+                    ais_shape.SetTransparency(0.2)
+                    self.display.Context.Display(ais_shape, True)
+
+
+                    if not iterator.next():
+                        break
+
+    def _start_display(self):
+        self.display.FitAll()
+        self.start_display()
+
+    def _display_specific(self):
+        pass
+
+    def display(self):
+        self._display_generic()
+        self._display_specific()
+        self._start_display()
+
 
 
 class RuleCheckComplex(RuleCheck):
