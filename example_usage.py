@@ -7,49 +7,34 @@ import sys
 sys.path.insert(0, './ifcclash_plus')
 
 # Simple import of the main package
-import src
 
-# Or import specific classes directly
-from src import Volume, Area, SelectFacet
-from src.RuleClass import RuleFile
+from ifcclash_plus.Rules import OBB_Above
+from ifcclash_plus import RuleClass,SelectFacet
+from ifctester import ids
 
 def main():
-    print("IfcClash_Plus - Example Usage")
-    print("=" * 40)
-    
-    # Show available classes from the package
-    print("\nAvailable classes from 'import src':")
-    classes = [name for name in dir(src) if not name.startswith('_') and name[0].isupper()]
-    for cls in classes:
-        print(f"  - {cls}")
-    
-    print("\n" + "=" * 40)
-    print("Example: Creating a Volume rule")
-    print("-" * 40)
-    
-    # Example usage (this would need actual IFC files to run)
-    print("from src import Volume, SelectFacet")
-    print("from ifctester import ids")
-    print()
-    print("# Create a facet selector")
-    print("wall_facet = ids.Entity(name='IFCWALLSTANDARDCASE')")
-    print("select_facet = SelectFacet()")
-    print("select_facet.applicability = [wall_facet]")
-    print("select_facet.list_ifc_path = ['model.ifc']")
-    print()
-    print("# Create and run volume rule")
-    print("volume_rule = Volume(select_facet, 0.001, 1000)")
-    print("volume_rule.run()")
-    print()
-    print("# Access results")
-    print("for result in volume_rule.result:")
-    print("    print(f'Element: {result.ifc_element}, Volume: {result.volume}')")
-    
-    print("\n" + "=" * 40)
-    print("For more examples, see:")
-    print("  - src/exemple.py")
-    print("  - tests/test_rules.py")
-    print("=" * 40)
+    Chemin = "Ifc_Model/Ifc2x3_Duplex_Architecture.ifc"
+    OneRuleFile = RuleClass.RuleFile()
+    OneRuleFile.list_ifc_path= [Chemin]
 
+    Source_Select = SelectFacet()
+    Source_Facet = ids.Entity(name="IFCFURNISHINGELEMENT")
+    Source_Select.applicability = [Source_Facet]
+
+
+    Source_Select2 = SelectFacet()
+    Source_Facet2 = ids.Entity(name="IFCSLAB")
+    Source_Select2.applicability = [Source_Facet2]
+
+    rule=OBB_Above(Source_Select,Source_Select2,0.85)
+
+
+    OneRuleFile.contains=[rule]
+
+    OneRuleFile.run()
+
+    for result in rule.result:
+        print()
+        print(result.source,result.target)
 if __name__ == "__main__":
     main()
