@@ -89,9 +89,9 @@ There is a sheet for every rule, that present the rule, the parameters and the e
 
 
 ## One Object Rule
-* [Volume](doc/1ObjectsRules/Volume) Rule:OK Doc:Nok test:Nok
-* [Area](doc/1ObjectsRules/Area) Rule:NOK Doc:Nok test:Nok
-* [Top Surface](doc/1ObjectsRules/TopSurface) Rule:NOK Doc:Nok test:Nok
+* [Volume](doc/1ObjectsRules/Volume) Rule:OK Doc:Nok test:Ok
+* [Area](doc/1ObjectsRules/Area) Rule:Ok Doc:Nok test:Ok
+* [Top Surface](doc/1ObjectsRules/TopSurface) Rule:Ok Doc:Nok test:Ok
 * [Bottom Surface](doc/1ObjectsRules/BottomSurface) Rule:NOK Doc:Nok test:Nok
 * [Lateral Surface](doc/1ObjectsRules/LateralSurface) Rule:NOK Doc:Nok test:Nok
 * [Projected Surface](doc/1ObjectsRules/ProjectedSurface) Rule:NOK Doc:Nok test:Nok
@@ -100,9 +100,9 @@ There is a sheet for every rule, that present the rule, the parameters and the e
 ## Two Object Rule
 
 ### Historic IfcClash Rule
-* [Clearance](doc/2ObjectsRules/Clearance) Rule:NOK Doc:Nok test:Nok
-* [Intersection](doc/2ObjectsRules/Intersection) Rule:NOK Doc:Nok test:Nok
-* [Collision](doc/2ObjectsRules/Collision) Rule:NOK Doc:Nok test:Nok
+* [Clearance](doc/2ObjectsRules/Clearance) Rule:Ok Doc:Nok test:Ok
+* [Intersection](doc/2ObjectsRules/Intersection) Rule:Ok Doc:Nok test:Ok
+* [Collision](doc/2ObjectsRules/Collision) Rule:Ok Doc:Nok test:Ok
 
 ### Advance Clearance Rule
 * [Clearance Above Object](doc/2ObjectsRules/ClearanceAbove.md) Rule:OK Doc:Nok test:Nok
@@ -110,8 +110,8 @@ There is a sheet for every rule, that present the rule, the parameters and the e
 * [Clearance Below Object](doc/2ObjectsRules/ClearanceBelow) Rule:NOK Doc:Nok test:Nok
 
 ### Clearance with OBB
-* [OBB Above](doc/2ObjectsRules/OBB_Above) Rule:NOK Doc:Nok test:Nok
-* [OBB Below](doc/2ObjectsRules/OBB_Below) Rule:NOK Doc:Nok test:Nok
+* [OBB Above](doc/2ObjectsRules/OBB_Above) Rule:Ok Doc:Nok test:Ok
+* [OBB Below](doc/2ObjectsRules/OBB_Below) Rule:Ok Doc:Nok test:Partial
 * [OBB Front And Back](doc/2ObjectsRules/OBB_Front_And_Back) Rule:NOK Doc:Nok test:Nok
 
 ### Other type of rule
