@@ -36,7 +36,7 @@ from OCC.Core.BRepBuilderAPI import (
 )
 from OCC.Core.gp import gp_Pnt
 from OCC.Core.TopoDS import TopoDS_Compound
-from CustomOBB import create_obb_from_TopoDs_Shape,create_obb_via_pca,create_obb_with_fixed_z,create_obb_with_free_z,create_obb_from_verts
+from CustomOBB import create_obb_from_TopoDs_Shape,create_obb_from_TopoDs_Shape_via_pca,create_obb_with_fixed_z,create_obb_with_free_z,create_obb_from_verts_withOCC
 
 
 
@@ -311,7 +311,7 @@ def display_OBB(file_path, angle_offset=0):
             shape = iterator.get()
             geom = shape.geometry
 
-            obb = create_obb_via_pca(geom)
+            obb = create_obb_from_TopoDs_Shape_via_pca(geom)
             custom_OBB=Custom_OBB(gp_Pnt(obb.Center()),gp_Dir(obb.XDirection()),gp_Dir(obb.YDirection()),gp_Dir(obb.ZDirection()),obb.XHSize(),obb.YHSize(),obb.ZHSize())
             #custom_OBB=create_obb_from_geom_verts(geom)
             #custom_OBB=custom_OBB.detach_top_by_extrude(0.1)
@@ -362,7 +362,7 @@ def display_OBB_front_back(file_path, angle_offset=0):
             shape = iterator.get()
             geom = shape.geometry
 
-            obb = create_obb_from_verts(geom)
+            obb = create_obb_from_verts_withOCC(geom)
             obb.Enlarge(0.1)
             custom_OBB=Custom_OBB(gp_Pnt(obb.Center()),gp_Dir(obb.XDirection()),gp_Dir(obb.YDirection()),gp_Dir(obb.ZDirection()),obb.XHSize(),obb.YHSize(),obb.ZHSize())
 

@@ -52,7 +52,6 @@ Clash M_Fixed:819mm x 759mm:819mm x 759mm:149537 foo
 Clash M_Fixed:819mm x 759mm:819mm x 759mm:149924 foo
     """
 
-
 def Rule_Select():
     path_arc = "Ifc_Model/Ifc2x3_Duplex_Architecture.ifc"
 

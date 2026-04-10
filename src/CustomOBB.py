@@ -946,8 +946,4 @@ if __name__ == "__main__":
     settings.set(settings.USE_WORLD_COORDS, True)
 
     shape = ifcopenshell.geom.create_shape(settings, doors[0])
-    geom = shape.geometry
 
-    print(geom)
-
-    obb = create_OBB_from_IfcShape(geom)
