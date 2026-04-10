@@ -29,8 +29,33 @@ V0.2
 - Update the actor automatic classification
     Each result can be automaticaly classified in order to determine an actor to tag. This could be exporter toward a BCF. 
 
+V0.3
+- IA Use
+I have started to use IA to create function. Previously, it was way more sporadic.
 
+- Create custom OBB Class
+This is a customOBB class made with the Bnd_OBB() class from OCC. It will help to modify existing OBB, in order to expand, detach side or top. 
+This new OBB will then create a new space that can clash with objects.
+The obb is very convienent to modify, and easy enough to apply transformation.
 
+I created several function to generate OBB from object. Some of them are better than other.
+One of them, is interessting, because it create an OBB with the Z axis stuck to (0,0,1). It's helpful for box like object.
+
+- Add a display function
+This function should help to see, what should happen in the rule. It will print OBB Box, where the clash should appear.
+It will show the object that are 
+
+- OBB Top and bottom
+This rule will check if something is above or below an object. It will create a new obb in the top (or bottom) of the object and check if something clash with it.
+It's a little bit different from Above or Below rule, because you can modify the size of the OBB more precisely. 
+
+- OBB Front and Back
+This rule will check if something is in front or in the back of the object.
+It's quite hard to detect what is the front and back. I am using the size of the OBB to detect that. It will be then dependent to each objects.
+For a door, the front is the wide part. For some other object, it will be the narrow part.
+
+- Added a few test case
+still WIP
 
 1. Expand number of rule and create the base structure for rules
 2. Create association of rule in python
