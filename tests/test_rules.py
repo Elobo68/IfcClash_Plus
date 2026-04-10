@@ -3,7 +3,9 @@ Test suite for Rules classes in Rules.py
 """
 import unittest
 import ifcopenshell
-from src.Rules import Volume, Area, TopSurface, Intersection, Above, OBB_Above
+import sys
+sys.path.insert(0, './src')
+from Rules import Volume, Area, TopSurface, Intersection, Above, OBB_Above
 from RuleClass import SelectFacet
 from ifctester import ids
 
