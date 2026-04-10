@@ -12,8 +12,8 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/yourusername/IfcClash_Plus",
-    package_dir={"": "src"},
-    packages=find_packages(where="src"),
+    package_dir={"": "ifcclash_plus"},
+    packages=find_packages(where="ifcclash_plus"),
     python_requires=">=3.8",
     install_requires=[
         "ifcopenshell",

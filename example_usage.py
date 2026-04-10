@@ -4,7 +4,7 @@ Example usage of IfcClash_Plus with the new import system
 """
 
 import sys
-sys.path.insert(0, './src')
+sys.path.insert(0, './ifcclash_plus')
 
 # Simple import of the main package
 import src

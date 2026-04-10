@@ -1,0 +1,10 @@
+LICENSE
+README.md
+setup.py
+src/ifcclash_plus.egg-info/PKG-INFO
+src/ifcclash_plus.egg-info/SOURCES.txt
+src/ifcclash_plus.egg-info/dependency_links.txt
+src/ifcclash_plus.egg-info/requires.txt
+src/ifcclash_plus.egg-info/top_level.txt
+tests/test_custom_obb.py
+tests/test_rules.py

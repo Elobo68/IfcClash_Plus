@@ -1,0 +1,14 @@
+ifcopenshell
+numpy
+trimesh
+shapely
+
+[dev]
+pytest
+ifctester
+black
+flake8
+
+[test]
+pytest
+ifctester
