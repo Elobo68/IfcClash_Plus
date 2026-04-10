@@ -1,3 +1,41 @@
+Metadata-Version: 2.4
+Name: ifcclash-plus
+Version: 0.3.0
+Summary: Extended clash detection rules for IFC models
+Home-page: https://github.com/yourusername/IfcClash_Plus
+Author: Jocelin
+Author-email: your.email@example.com
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Topic :: Scientific/Engineering :: CAD
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: ifcopenshell
+Requires-Dist: numpy
+Requires-Dist: trimesh
+Requires-Dist: shapely
+Provides-Extra: test
+Requires-Dist: pytest; extra == "test"
+Requires-Dist: ifctester; extra == "test"
+Provides-Extra: dev
+Requires-Dist: pytest; extra == "dev"
+Requires-Dist: ifctester; extra == "dev"
+Requires-Dist: black; extra == "dev"
+Requires-Dist: flake8; extra == "dev"
+Dynamic: author
+Dynamic: author-email
+Dynamic: classifier
+Dynamic: description
+Dynamic: description-content-type
+Dynamic: home-page
+Dynamic: license-file
+Dynamic: provides-extra
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary
+
 # IfcClash_Plus
 This is a test to find the best solution before trying to implement directly into IfcClash.
 We have 4 type of rule that exist inside IfcClash.
@@ -38,7 +76,6 @@ This is a customOBB class made with the Bnd_OBB() class from OCC. It will help t
 This new OBB will then create a new space that can clash with objects.
 The obb is very convienent to modify, and easy enough to apply transformation.
 
-- Function to generate OBB
 I created several function to generate OBB from object. Some of them are better than other.
 One of them, is interessting, because it create an OBB with the Z axis stuck to (0,0,1). It's helpful for box like object.
 
@@ -55,7 +92,7 @@ This rule will check if something is in front or in the back of the object.
 It's quite hard to detect what is the front and back. I am using the size of the OBB to detect that. It will be then dependent to each objects.
 For a door, the front is the wide part. For some other object, it will be the narrow part.
 
-- Added a few test case to help debug everything
+- Added a few test case
 still WIP
 
 1. Expand number of rule and create the base structure for rules
@@ -67,7 +104,7 @@ still WIP
     I want to create a catalog of rule. In order for them to work, i need a standardization of the functionality to expand them and make them work all together.
     
     For the standardisation, i started a dictionnary to explain my vocabulary. 
-    [Vocabulary](doc/Rule.md)
+    [Vocabulary](Clash_Expend/Rule.md)
 - Use IDS to select
     The idea is to reuse IDS Facet to select list of elements. I am pretty sure more and more people are starting to use it, so it will be easier for everyone with time.
 - Waterfall of Rule
@@ -86,47 +123,38 @@ still WIP
 
 
 # Catalog of rule
-There is a sheet for every rule, that present the rule, the parameters and the edge case.
+I will do a sheet for every rule to describe the way it's working and the intended result of that rule.
+
+This is my starting point for a new rule.
+[Clearance Above Object](Clash_Expend/2ObjectsRules/ClearanceAbove)
+
+## Two Object Rule
+* [Clearance Above Object](Clash_Expend/2ObjectsRules/ClearanceAbove) Status:OK
+* [Clearance Next To Object](Clash_Expend/2ObjectsRules/ClearanceNextTo) Status:NOK
+* [Clearance Below Object](Clash_Expend/2ObjectsRules/ClearanceBelow) Status:NOK
+* [Cleareance OBB](Clash_Expend/2ObjectsRules/ClearanceOBB) Status:NOK
+* [Direct View](Clash_Expend/2ObjectsRules/DirectView) Status:NOK
+* [Face Check](Clash_Expend/2ObjectsRules/FaceCheck) Status:NOK
+* [Angle Between](Clash_Expend/2ObjectsRules/AngleBetween) Status:NOK
+* [Surface Recover](Clash_Expend/2ObjectsRules/SurfaceRecover) Status:NOK
 
 
 ## One Object Rule
-* [Volume](doc/1ObjectsRules/Volume) Rule:OK Doc:Nok test:Ok
-* [Area](doc/1ObjectsRules/Area) Rule:Ok Doc:Nok test:Ok
-* [Top Surface](doc/1ObjectsRules/TopSurface) Rule:Ok Doc:Nok test:Ok
-* [Bottom Surface](doc/1ObjectsRules/BottomSurface) Rule:NOK Doc:Nok test:Nok
-* [Lateral Surface](doc/1ObjectsRules/LateralSurface) Rule:NOK Doc:Nok test:Nok
-* [Projected Surface](doc/1ObjectsRules/ProjectedSurface) Rule:NOK Doc:Nok test:Nok
-* [Orientation](doc/1ObjectsRules/Orientation) Rule:NOK Doc:Nok test:Nok
-
-## Two Object Rule
-
-### Historic IfcClash Rule
-* [Clearance](doc/2ObjectsRules/Clearance) Rule:Ok Doc:Nok test:Ok
-* [Intersection](doc/2ObjectsRules/Intersection) Rule:Ok Doc:Nok test:Ok
-* [Collision](doc/2ObjectsRules/Collision) Rule:Ok Doc:Nok test:Ok
-
-### Advance Clearance Rule
-* [Clearance Above Object](doc/2ObjectsRules/ClearanceAbove.md) Rule:OK Doc:Nok test:Nok
-* [Clearance Next To Object](doc/2ObjectsRules/ClearanceNextTo) Rule:NOK Doc:Nok test:Nok
-* [Clearance Below Object](doc/2ObjectsRules/ClearanceBelow) Rule:NOK Doc:Nok test:Nok
-
-### Clearance with OBB
-* [OBB Above](doc/2ObjectsRules/OBB_Above) Rule:Ok Doc:Nok test:Ok
-* [OBB Below](doc/2ObjectsRules/OBB_Below) Rule:Ok Doc:Nok test:Partial
-* [OBB Front And Back](doc/2ObjectsRules/OBB_Front_And_Back) Rule:NOK Doc:Nok test:Nok
-
-### Other type of rule
-* [Surface Recover](doc/2ObjectsRules/SurfaceRecover) Rule:NOK Doc:Nok test:Nok
-* [Angle Between](doc/2ObjectsRules/AngleBetween) Rule:NOK Doc:Nok test:Nok
-* [Direct View](doc/2ObjectsRules/DirectView) Rule:NOK Doc:Nok test:Nok
-* [Face Check](doc/2ObjectsRules/FaceCheck) Rule:NOK Doc:Nok test:Nok
+* [Volume](Clash_Expend/1ObjectsRules/Orientation) Status:Partial
+* [Area](Clash_Expend/1ObjectsRules/Area) Status:Partial
+* [Top Surface](Clash_Expend/1ObjectsRules/TopSurface) Status:Partial
+* [Bottom Surface](Clash_Expend/1ObjectsRules/BottomSurface) Status:NOK
+* [Lateral Surface](Clash_Expend/1ObjectsRules/LateralSurface) Status:NOK
+* [Projected Surface](Clash_Expend/1ObjectsRules/ProjectedSurface) Status:NOK
+* [Orientation](Clash_Expend/1ObjectsRules/Orientation) Status:NOK
 
 
 ## Complex Rule
-* [Free Space in Room](doc/1ObjectsRules/Orientation) Rule:NOK Doc:Nok test:Nok
-* [Find Path](doc/ComplexRules/FindPath) Rule:NOK Doc:Nok test:Nok
-* [EvacuationDistance](doc/ComplexRules/EvacuationDistance) Rule:NOK Doc:Nok test:Nok
-* [Alignement](doc/ComplexRules/Alignement) Rule:NOK Doc:Nok test:Nok
+* [Free Space in Room](Clash_Expend/1ObjectsRules/Orientation) Status:NOK
+* [Find Path](Clash_Expend/ComplexRules/FindPath) Status:NOK
+* [EvacuationDistance](Clash_Expend/ComplexRules/EvacuationDistance) Status:NOK
+* [Alignement](Clash_Expend/ComplexRules/Alignement) Status:NOK
 
 
 # Todo List
+#@todo Create a function to create the geometry of each function. This can help to vizualise the 

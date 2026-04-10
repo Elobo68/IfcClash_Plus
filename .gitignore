@@ -12,3 +12,10 @@ src/Blender_Integration.py
 src/test_pythonOCC.py
 src/test_ifcopenshell.py
 src/test_ifcopenshell.py
+tests/__pycache__/test_custom_obb.cpython-314-pytest-9.0.3.pyc
+src/__pycache__/Rules.cpython-314.pyc
+src/__pycache__/CustomOBB.cpython-314.pyc
+__pycache__/__init__.cpython-314.pyc
+src/__pycache__/CustomOBB.cpython-314.pyc
+src/__pycache__/Rules.cpython-314.pyc
+src/constructtest_mainfunction.py
