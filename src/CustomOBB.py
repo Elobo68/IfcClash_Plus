@@ -588,22 +588,79 @@ class Custom_OBB(Bnd_OBB):
         return top_OBB
 
     def detach_bottom_by_extrude(self, change) -> "Custom_OBB":
-        if type(change) is str:
-            change = change.replace("%", "")
-            change = float(change)
-            change = change / 100
+        # Direction mondiale vers le haut
+        world_dir = gp_Dir(0, 0, -1)
 
-        center = gp_Pnt(self.Center() + gp_XYZ(0, 0, -self.ZHSize() - change / 2))
+        current_center = self.Center()
         x_dir = gp_Dir(self.XDirection())
         y_dir = gp_Dir(self.YDirection())
         z_dir = gp_Dir(self.ZDirection())
-        x_h = self.XHSize()
-        y_h = self.YHSize()
-        z_h = change / 2
 
-        bottom_OBB = Custom_OBB(center, x_dir, y_dir, z_dir, x_h, y_h, z_h)
+        axes = [
+            (x_dir, self.XHSize()),
+            (y_dir, self.YHSize()),
+            (z_dir, self.ZHSize()),
+        ]
 
-        return bottom_OBB
+        # Identifier l'axe local le plus aligné avec Z mondial (up)
+        # On garde le signe pour orienter vers le haut
+        best_dot = None
+        up_axis_idx = None
+        for i, (ax, _) in enumerate(axes):
+            dot = world_dir.Dot(ax)
+            if best_dot is None or abs(dot) > abs(best_dot):
+                best_dot = dot
+                up_axis_idx = i
+
+        up_dir, up_hsize = axes[up_axis_idx]
+
+        up_dir, up_hsize = axes[up_axis_idx]
+
+        if type(change) is str and "%" in change:
+            ratio = float(change.replace("%", "")) / 100
+            change = ratio * up_hsize*2
+
+        # Si l'axe local pointe vers le bas, on l'inverse pour pointer vers le haut
+        if best_dot < 0:
+            up_dir = up_dir.Reversed()
+
+        # Les deux axes horizontaux restants
+        horiz_axes = [axes[i] for i in range(3) if i != up_axis_idx]
+
+        # Sommet de l'OBB actuel dans la direction up locale
+        # highest_point = center + up_dir * up_hsize
+        top_center = gp_Pnt(
+            current_center.X() + up_dir.X() * up_hsize + up_dir.X() * (change / 2),
+            current_center.Y() + up_dir.Y() * up_hsize + up_dir.Y() * (change / 2),
+            current_center.Z() + up_dir.Z() * up_hsize + up_dir.Z() * (change / 2),
+        )
+
+        # Les half-sizes horizontaux restent identiques
+        h_dir_0, h_hsize_0 = horiz_axes[0]
+        h_dir_1, h_hsize_1 = horiz_axes[1]
+
+        # Reconstruire les 3 axes dans le bon ordre (X, Y, Z de Custom_OBB)
+        # On réaffecte en respectant l'ordre original des axes
+        new_axes = [None, None, None]
+        new_hsizes = [None, None, None]
+
+        new_axes[up_axis_idx] = up_dir
+        new_hsizes[up_axis_idx] = change / 2
+
+        horiz_indices = [i for i in range(3) if i != up_axis_idx]
+        new_axes[horiz_indices[0]] = h_dir_0
+        new_hsizes[horiz_indices[0]] = h_hsize_0
+        new_axes[horiz_indices[1]] = h_dir_1
+        new_hsizes[horiz_indices[1]] = h_hsize_1
+
+        top_OBB = Custom_OBB(
+            top_center,
+            new_axes[0], new_axes[1], new_axes[2],
+            new_hsizes[0], new_hsizes[1], new_hsizes[2],
+        )
+
+        return top_OBB
+
 
     def extend_up(self, change: float) -> "Custom_OBB":
         """

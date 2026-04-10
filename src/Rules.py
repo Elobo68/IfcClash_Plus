@@ -1019,6 +1019,43 @@ class OBB_Below(RuleCheckTwoObjects):
         if state == "Select":
             self.produce_select()
 
+    def _display_specific(self):
+        from OCC.Core.AIS import AIS_Shape
+        from OCC.Core.Quantity import Quantity_Color, Quantity_TOC_RGB
+        
+        settings = ifcopenshell.geom.settings()
+        settings.set("USE_WORLD_COORDS", True)
+        #settings.set("use-python-opencascade", True)
+
+        # Check the extrem face of the source
+        for ifc_file in self.select_source.dict_elements.keys():
+            iterator = ifcopenshell.geom.iterator(
+                self.geom_settings,
+                ifc_file,
+                multiprocessing.cpu_count(),
+                include=self.select_source.dict_elements[ifc_file],
+            )
+
+            if iterator.initialize():
+                while True:
+                    shape = iterator.get()
+                    geom = shape.geometry
+
+
+                    obb = create_obb_with_free_z(geom)
+                    clash_obb = obb.detach_bottom_by_extrude(self.tolerance)
+                    compound = clash_obb.to_TopoDS_Compound()
+                    ais_shape=AIS_Shape(compound)
+                    green_color = Quantity_Color(0.0, 1.0, 0.0, Quantity_TOC_RGB)
+                    ais_shape.SetColor(green_color)
+                    ais_shape.SetTransparency(0.2)
+                    self.display.Context.Display(ais_shape, True)
+
+
+                    if not iterator.next():
+                        break
+
+
 DIRECTION_METHOD = Literal[
     "Wide", "Narrow"]
 
