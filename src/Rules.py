@@ -14,7 +14,7 @@ from ifcopenshell.util.shape import (
 import clash_utils
 import numpy as np
 from typing import Literal
-from CustomOBB import create_obb_from_TopoDs_Shape_via_pca
+from CustomOBB import create_obb_from_TopoDs_Shape_via_pca,create_obb_with_free_z
 from OCC.Core.BRepExtrema import BRepExtrema_DistShapeShape
 from RuleClass import Select
 import ifcopenshell.util.placement
@@ -919,7 +919,7 @@ class OBB_Above(RuleCheckTwoObjects):
                     geom = shape.geometry
 
 
-                    obb = create_obb_from_TopoDs_Shape_via_pca(geom)
+                    obb = create_obb_with_free_z(geom)
                     clash_obb = obb.detach_top_by_extrude(self.tolerance)
                     compound = clash_obb.to_TopoDS_Compound()
                     ais_shape=AIS_Shape(compound)
