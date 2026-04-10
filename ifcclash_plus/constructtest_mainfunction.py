@@ -1,6 +1,6 @@
 import RuleClass
 from RuleClass import SelectFacet,SelectRule,RuleFile
-from Rules import Volume, Area, TopSurface,Intersection,Above,OBB_Above,Ray_Check
+from Rules import Volume, Area, TopSurface,Intersection,Above,OBB_Above,Ray_Check,OBB_Below
 from ifctester import ids
 from ifcopenshell import file
 import ifcopenshell
@@ -316,15 +316,15 @@ def create_OBB_clash():
     OneRuleFile.list_ifc_path= [Chemin]
 
     Source_Select = SelectFacet()
-    Source_Facet = ids.Entity(name="IFCWINDOW")
+    Source_Facet = ids.Entity(name="IFCSLAB")
     Source_Select.applicability = [Source_Facet]
 
 
     Source_Select2 = SelectFacet()
-    Source_Facet2 = ids.Entity(name="IFCWINDOW")
+    Source_Facet2 = ids.Entity(name="IFCFURNISHINGELEMENT")
     Source_Select2.applicability = [Source_Facet2]
 
-    rule=OBB_Above(Source_Select,Source_Select2,0.1)
+    rule=OBB_Below(Source_Select,Source_Select2,0.6)
 
 
     OneRuleFile.contains=[rule]
@@ -372,15 +372,15 @@ def create_display():
     OneRuleFile.list_ifc_path= [Chemin]
 
     Source_Select = SelectFacet()
-    Source_Facet = ids.Entity(name="IFCSLAB")
+    Source_Facet = ids.Entity(name="IfcWindow")
     Source_Select.applicability = [Source_Facet]
 
 
     Source_Select2 = SelectFacet()
-    Source_Facet2 = ids.Entity(name="IFCDOOR")
+    Source_Facet2 = ids.Entity(name="IfcSlab")
     Source_Select2.applicability = [Source_Facet2]
 
-    rule=OBB_Above(Source_Select,Source_Select2,0.2)
+    rule=OBB_Below(Source_Select,Source_Select2,0.1)
 
     OneRuleFile.contains=[rule]
     OneRuleFile.load_file()

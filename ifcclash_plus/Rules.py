@@ -7,14 +7,14 @@ from RuleClass import (
 )
 import ifcopenshell
 import multiprocessing
-from clash_utils import get_extreme_faces
+import clash_utils
 import shapely
 from ifcopenshell.util.shape import (
     get_vertices,
 )
 import numpy as np
 from typing import Literal
-from CustomOBB import create_obb_from_TopoDs_Shape_via_pca,create_obb_with_free_z
+from CustomOBB import create_obb_from_TopoDs_Shape_via_pca,create_obb_with_free_z,create_obb_with_fixed_z,create_obb_from_TopoDs_Shape
 from OCC.Core.BRepExtrema import BRepExtrema_DistShapeShape
 import ifcopenshell.util.placement
 
@@ -138,7 +138,7 @@ class TopSurface(RuleCheckOneObject):
                     geom = shape.geometry
                     entity = ifc_file.by_id(shape.id)
                     vertices = get_vertices(geom)
-                    faces = get_extreme_faces(geometry=geom, direction=direction)
+                    faces = clash_utils.get_extreme_faces(geometry=geom, direction=direction)
                     polygons = [shapely.Polygon(vertices[face]) for face in faces]
                     unioned_polygon = shapely.ops.unary_union(polygons)
 
@@ -443,12 +443,13 @@ class Intersection(RuleCheckTwoObjects):
             self.produce_select()
 
 class Clearance(RuleCheckTwoObjects):
+    #@todo create a max distance for clearance
     def __init__(self, source, target, clearance=0.05):
         super().__init__(source, target)
 
         self.type = "Clearance"
         self.geom_settings = ifcopenshell.geom.settings()
-        self.clearance: float = 0.05
+        self.clearance: float = clearance
         self.check_all: bool = False
 
     def run(self, state="Final"):
@@ -456,31 +457,20 @@ class Clearance(RuleCheckTwoObjects):
         self.select_source.run()
         self.select_target.run()
 
-        source_elements = []
-        target_elements = []
-
-        # @todo update this script
-        for file in self.select_source.dict_elements.keys():
-            list = self.select_source.dict_elements[file]
-            for element in list:
-                source_elements.append(element)
-
-        for file in self.select_target.dict_elements.keys():
-            list = self.select_target.dict_elements[file]
-            for element in list:
-                target_elements.append(element)
+        self.select_source.create_list_of_element()
+        self.select_target.create_list_of_element()
 
         self.add_to_tree(self.select_source, "BVH")
         self.add_to_tree(self.select_target, "BVH")
 
         temp_result = self.tree.clash_clearance_many(
-            source_elements,
-            target_elements,
+            self.select_source.list_of_elements,
+            self.select_target.list_of_elements,
             clearance=self.clearance,
             check_all=self.check_all,
         )
 
-        list_result = []  # I need to do that to avoid reusing the same result result in the different intersection.
+        self.result = []  # I need to do that to avoid reusing the same result result in the different intersection.
 
         # @todo make a proper integration, how to deal with extra data ? (Point of entry, distance, etc...)
         for result in temp_result:
@@ -491,7 +481,7 @@ class Clearance(RuleCheckTwoObjects):
             b_object = b__file.by_id(result.b.id_)
 
             # source and target are mixed up.
-            if a__object in source_elements:
+            if a__object in self.select_source.list_of_elements:
                 source_object = a__object
                 target_object = b_object
             else:
@@ -512,7 +502,7 @@ class Clearance(RuleCheckTwoObjects):
 
 
 class Collision(RuleCheckTwoObjects):
-    def __init__(self, source, target, tolerance=0):
+    def __init__(self, source, target, allow_touching=False):
         super().__init__(source, target)
         self.type = "Collision"
         self.allow_touching = False
@@ -523,6 +513,9 @@ class Collision(RuleCheckTwoObjects):
         self.select_source.run()
         self.select_target.run()
 
+        self.select_source.create_list_of_element()
+        self.select_target.create_list_of_element()
+
         self.add_to_tree(self.select_source, "BVH")
         self.add_to_tree(self.select_target, "BVH")
 
@@ -531,6 +524,8 @@ class Collision(RuleCheckTwoObjects):
             self.select_target.list_of_elements,
             allow_touching=self.allow_touching,
         )
+
+        self.result=[]
 
         for result in temp_result:
             a_file = ifcopenshell.file.from_pointer(result.a.file_pointer())
@@ -1046,7 +1041,7 @@ class OBB_Above(RuleCheckTwoObjects):
                     entity = ifc_file.by_id(shape.data.id)
 
                     # Create OBB for the source object (detection zone)
-                    obb = create_obb_from_TopoDs_Shape_via_pca(geom)
+                    obb = create_obb_from_TopoDs_Shape(geom)
                     clash_obb = obb.detach_top_by_extrude(self.tolerance)
                     compound = clash_obb.to_TopoDS_Compound()
                     source_obbs.append({"entity": entity, "geom": compound})
@@ -1127,7 +1122,7 @@ class OBB_Above(RuleCheckTwoObjects):
                     geom = shape.geometry
 
 
-                    obb = create_obb_with_free_z(geom)
+                    obb = create_obb_from_TopoDs_Shape(geom)
                     clash_obb = obb.detach_top_by_extrude(self.tolerance)
                     compound = clash_obb.to_TopoDS_Compound()
                     ais_shape=AIS_Shape(compound)
@@ -1169,9 +1164,9 @@ class OBB_Below(RuleCheckTwoObjects):
                     entity = ifc_file.by_id(shape.data.id)
 
                     # Create OBB for the source object (detection zone)
-                    obb = create_obb_from_TopoDs_Shape_via_pca(geom)
+                    obb = create_obb_from_TopoDs_Shape(geom)
                     clash_obb = obb.detach_bottom_by_extrude(self.tolerance)
-                    compound = clash_obb.to_compound()
+                    compound = clash_obb.to_TopoDS_Compound()
                     source_obbs.append({"entity": entity, "geom": compound})
 
                     if not iterator.next():
@@ -1250,7 +1245,7 @@ class OBB_Below(RuleCheckTwoObjects):
                     geom = shape.geometry
 
 
-                    obb = create_obb_with_free_z(geom)
+                    obb = create_obb_from_TopoDs_Shape(geom)
                     clash_obb = obb.detach_bottom_by_extrude(self.tolerance)
                     compound = clash_obb.to_TopoDS_Compound()
                     ais_shape=AIS_Shape(compound)

@@ -227,7 +227,7 @@ def create_obb_from_geom_verts(geom:W.Triangulation) -> "Custom_OBB":
     return obb
 
 
-def create_obb_from_TopoDs_Shape(shape:TopoDS_Compound) -> Bnd_OBB:
+def create_obb_from_TopoDs_Shape(shape:TopoDS_Compound) -> "Custom_OBB":
     """
     Calcule l'OBB (Oriented Bounding Box) d'une forme TopoDS_Shape.
 
@@ -246,7 +246,17 @@ def create_obb_from_TopoDs_Shape(shape:TopoDS_Compound) -> Bnd_OBB:
     brepbndlib.AddOBB(
         shape, obb, True, True, True
     )  # Utiliser les flags pour inclure les sous-formes
-    return obb
+
+    center = gp_Pnt(obb.Center())
+    x_dir = gp_Dir(obb.XDirection())
+    y_dir = gp_Dir(obb.YDirection())
+    z_dir = gp_Dir(obb.ZDirection())
+    x_h=obb.XHSize()
+    y_h=obb.YHSize()
+    z_h=obb.ZHSize()
+    
+    thecustomobb = Custom_OBB(center, x_dir, y_dir, z_dir, x_h, y_h, z_h)
+    return thecustomobb
 
 
 def create_obb_from_TopoDs_Shape_via_pca(shape:TopoDS_Compound) -> "Custom_OBB":
