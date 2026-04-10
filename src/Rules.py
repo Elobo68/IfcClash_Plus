@@ -436,6 +436,12 @@ ABOVE_TYPE = Literal[
     "Above_MinToMax", "Above_MinToMin", "Above_MaxToMin", "Above_MaxToMax"
 ]
 
+BELOW_TYPE = Literal[
+    "Below_MinToMax", "Below_MinToMin", "Below_MaxToMin", "Below_MaxToMax"
+]
+
+
+
 class Above(RuleCheckTwoObjects):
     def __init__(self, source, target, above_type: ABOVE_TYPE, tolerance=0.1):
         super().__init__(source, target)

@@ -5,6 +5,8 @@ This rule check that the angle between two objects.
 The direction of the objects can be obtains with two differents methods.
 
 
+
+
 # Property
 
 Direction Method : 

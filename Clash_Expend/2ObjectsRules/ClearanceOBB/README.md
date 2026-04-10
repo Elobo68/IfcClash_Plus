@@ -1,9 +1,10 @@
 # Description
 
 We will use the OBB to determine what is the front and back.
-- Front And Back Mode
-- Front or Back Mode
+- Generic Mode
+- Above or Below Mode
 - Side Mode
+- Front or Back Mode
 
 
 For all those possibilties, we can determine some volume to create exclusion zone.
@@ -12,7 +13,29 @@ In front is very subjective, we can only determine the front and the back of an 
 The front is considered as the largest part of the object. 
 
 
+
+
+Generic Mode
+Check all distance between the OBB and the object.
+
+Above Or Below - Specific Rule
+The source object must be above or below the object. 
+
+
+
+Right Above and Right Below - Specific Rule
+The source ob
+
+Side Mode - Specific rule
+The object must to be above, nor be below. It must be on the side 
+
+
+
+
 DEV NOTE
+Il faut créer plusieurs règles pour chaque mode. La détermination de ce qu'est le devant, le haut etc va être chiant à généraliser. 
+Autant faire des fonctions différentes.
+
 La OBB forme un objet uniforme afin d'y lancer plusieurs calculs configurables à l'avance. 
 Devant
 A Côté

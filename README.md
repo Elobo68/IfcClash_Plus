@@ -63,35 +63,47 @@ V0.2
 I will do a sheet for every rule to describe the way it's working and the intended result of that rule.
 
 This is my starting point for a new rule.
-[Clearance Above Object](Clash_Expend/2ObjectsRules/ClearanceAbove)
+[Clearance Above Object](Clash_Expend/2ObjectsRules/ClearanceAbove/README.md)
 
 ## Two Object Rule
-* [Clearance Above Object](Clash_Expend/2ObjectsRules/ClearanceAbove) Status:OK
-* [Clearance Next To Object](Clash_Expend/2ObjectsRules/ClearanceNextTo) Status:NOK
-* [Clearance Below Object](Clash_Expend/2ObjectsRules/ClearanceBelow) Status:NOK
-* [Cleareance OBB](Clash_Expend/2ObjectsRules/ClearanceOBB) Status:NOK
-* [Direct View](Clash_Expend/2ObjectsRules/DirectView) Status:NOK
-* [Face Check](Clash_Expend/2ObjectsRules/FaceCheck) Status:NOK
-* [Angle Between](Clash_Expend/2ObjectsRules/AngleBetween) Status:NOK
-* [Surface Recover](Clash_Expend/2ObjectsRules/SurfaceRecover) Status:NOK
+* [Clearance Above Object](Clash_Expend/2ObjectsRules/ClearanceAbove/README.md) Status:OK
+* [Clearance Below Object](Clash_Expend/2ObjectsRules/ClearanceBelow/README.md) Status:NOK
+* [Clearance Next To Object](Clash_Expend/2ObjectsRules/ClearanceNextTo/README.md) Status:NOK
+
+
+* [Cleareance OBB](Clash_Expend/2ObjectsRules/ClearanceOBB/README.md) Status:NOK
+* [Cleareance OBB - Front Or Back](Clash_Expend/2ObjectsRules/ClearanceOBB/README_FrontOrBack.md) Status:NOK
+* [Cleareance OBB - Custom OBB](Clash_Expend/2ObjectsRules/ClearanceOBB/README_CustomOBB.md) Status:NOK
+
+
+* [Direct View](Clash_Expend/2ObjectsRules/DirectView/README.md) Status:NOK
+* [Face Check](Clash_Expend/2ObjectsRules/FaceCheck/README.md) Status:NOK
+* [Angle Between](Clash_Expend/2ObjectsRules/AngleBetween/README.md) Status:NOK
+* [Surface Recover](Clash_Expend/2ObjectsRules/SurfaceRecover/README.md) Status:NOK
 
 
 ## One Object Rule
-* [Volume](Clash_Expend/1ObjectsRules/Orientation) Status:Partial
-* [Area](Clash_Expend/1ObjectsRules/Area) Status:Partial
-* [Top Surface](Clash_Expend/1ObjectsRules/TopSurface) Status:Partial
-* [Bottom Surface](Clash_Expend/1ObjectsRules/BottomSurface) Status:NOK
-* [Lateral Surface](Clash_Expend/1ObjectsRules/LateralSurface) Status:NOK
-* [Projected Surface](Clash_Expend/1ObjectsRules/ProjectedSurface) Status:NOK
-* [Orientation](Clash_Expend/1ObjectsRules/Orientation) Status:NOK
+* [Volume](Clash_Expend/1ObjectsRules/Orientation/README.md) Status:Partial
+* [Area](Clash_Expend/1ObjectsRules/Area/README.md) Status:Partial
+* [Top Surface](Clash_Expend/1ObjectsRules/TopSurface/README.md) Status:Partial
+* [Bottom Surface](Clash_Expend/1ObjectsRules/BottomSurface/README.md) Status:NOK
+* [Lateral Surface](Clash_Expend/1ObjectsRules/LateralSurface/README.md) Status:NOK
+* [Projected Surface](Clash_Expend/1ObjectsRules/ProjectedSurface/README.md) Status:NOK
+* [Orientation](Clash_Expend/1ObjectsRules/Orientation/README.md) Status:NOK
 
 
 ## Complex Rule
-* [Free Space in Room](Clash_Expend/1ObjectsRules/Orientation) Status:NOK
-* [Find Path](Clash_Expend/ComplexRules/FindPath) Status:NOK
-* [EvacuationDistance](Clash_Expend/ComplexRules/EvacuationDistance) Status:NOK
-* [Alignement](Clash_Expend/ComplexRules/Alignement) Status:NOK
+* [Free Space in Room](Clash_Expend/1ObjectsRules/Orientation/README.md) Status:NOK
+* [Find Path](Clash_Expend/ComplexRules/FindPath/README.md) Status:NOK
+* [EvacuationDistance](Clash_Expend/ComplexRules/EvacuationDistance/README.md) Status:NOK
+* [Alignement](Clash_Expend/ComplexRules/Alignement/README.md) Status:NOK
 
 
 # Todo List
-#@todo Create a function to create the geometry of each function. This can help to vizualise the 
+#@todo Create a function to create the geometry of each function. This can help to vizualise the clash volume
+#@todo Enable to use "another" geometry for each object, main geometry, but we could use "function geometry", or simplified geometry
+#@todo Retrieve point of entry and other info about the clash
+#@todo 
+
+
+

@@ -786,6 +786,10 @@ class ClashResult:
         self.actor: list[str] = []
 
 
+        self.point1 : tuple() #@todo Validate the info to export from the clash
+        self.point2 : tuple() #To validate, list of point
+
+
 class ClashResultOneObject(ClashResult):
     def __init__(self, source, state):
         super().__init__(source, state)

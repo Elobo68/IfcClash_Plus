@@ -11,6 +11,8 @@ from OCC.Core.BRepPrimAPI import BRepPrimAPI_MakeBox
 from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_Transform,BRepBuilderAPI_MakePolygon
 import OCC.Core.BRepPrimAPI as br
 import fixed_OBB
+import numpy as np
+import ifcopenshell.util.placement
 
 
 def OBB_To_Shape(obb:Bnd_OBB):
@@ -61,74 +63,192 @@ def MakeBox(obb:Bnd_OBB):
 
     return polygon.Shape()
 
+def MakeBox_with_direction(dir,loc):
+
+    vertices=[]
+    polygon=BRepBuilderAPI_MakePolygon()
+
+    listofvertice=[]
+    listofvertice.append((0,0,0))
+    listofvertice.append(dir)
+    listofvertice.append(dir+(0.01,0.01,0.01))
+    listofvertice.append((0.01,0.01,0.01))
+
+    listofvertice.append((0,0,1))
+    listofvertice.append(dir+(0,0,1))
+    listofvertice.append(dir+(0.01,0.01,1.01))
+    listofvertice.append((0.01,0.01,1.01))
 
 
-chemin="Ifc_Model/Ifc2x3_Duplex_Architecture.ifc"
-file=ifcopenshell.open(chemin)
+    for element in listofvertice:
+        x=float(element[0])+loc[0]
+        y=float(element[1])+loc[1]
+        z=float(element[2])+loc[2]
 
-spaces=file.by_type("IFCDISTRIBUTIONCONTROLELEMENT")
-#spaces=file.by_type("IFCSPACE")
-#spaces=file.by_type("IFCWALL")
-space=spaces[0]
+        pt_XYZ=gp_XYZ(x,y,z)
+        polygon.Add(gp_Pnt(pt_XYZ))
 
-settings=ifcopenshell.geom.settings()
-settings.set("use-python-opencascade", True)
-#shape=ifcopenshell.geom.create_shape(settings,space.Representation)
+    
+
+    polygon.Close()
+    polygon.Wire()
+
+    return polygon.Shape()
 
 
-iterator = ifcopenshell.geom.iterator(
-    settings,
-    file,
-    multiprocessing.cpu_count(),
-    include=spaces,
-)
+def display_box():
 
-display,start_display,add_menu,add_funtion=init_display()
+    chemin="Ifc_Model/Ifc2x3_Duplex_Architecture.ifc"
+    file=ifcopenshell.open(chemin)
 
-if iterator.initialize():
-    while True:
-        shape = iterator.get()
-        geom = shape.geometry
+    spaces=file.by_type("IFCDISTRIBUTIONCONTROLELEMENT")
+    #spaces=file.by_type("IFCSPACE")
+    #spaces=file.by_type("IFCWALL")
+    space=spaces[0]
 
-        obb_temp = Bnd_OBB()
-        brepbndlib.AddOBB(geom,obb_temp,True,True,True)
+    settings=ifcopenshell.geom.settings()
+    settings.set("use-python-opencascade", True)
+    #shape=ifcopenshell.geom.create_shape(settings,space.Representation)
 
-        Suzanne_AIS=AIS_Shape(geom)
-        Suzanne_AIS.SetTransparency(0.5)
 
-        display.Context.Display(Suzanne_AIS,True)
+    iterator = ifcopenshell.geom.iterator(
+        settings,
+        file,
+        multiprocessing.cpu_count(),
+        include=spaces,
+    )
+
+    display,start_display,add_menu,add_funtion=init_display()
+
+    if iterator.initialize():
+        while True:
+            shape = iterator.get()
+            geom = shape.geometry
+
+            obb_temp = Bnd_OBB()
+            brepbndlib.AddOBB(geom,obb_temp,True,True,True)
+
+            Suzanne_AIS=AIS_Shape(geom)
+            Suzanne_AIS.SetTransparency(0.5)
+
+            display.Context.Display(Suzanne_AIS,True)
+
+            
+            # Récupérer le centre
+            center = obb_temp.Center()
+
+            # Créer une nouvelle OBB avec Z fixé
+            obb = Bnd_OBB()
+            z_dir = gp_Dir(0, 0, 1)
+            x_dir = gp_Dir(1, 0, 0)
+
+            half_size_x=obb_temp.XHSize()
+            half_size_y=obb_temp.YHSize()
+            half_size_z=obb_temp.ZHSize()
+
+            
+
+            # Projeter les dimensions sur le plan XY
+            obb.SetCenter(gp_Pnt(center))
+            obb.SetXComponent(x_dir, half_size_x)
+            obb.SetYComponent(gp_Dir(0, 1, 0), half_size_y)
+            obb.SetZComponent(z_dir, half_size_z)
+
+            #
+            obb_shape=fixed_OBB.create_obb_with_fixed_z(geom)
+            obb_shape=MakeBox(obb_shape)
+            obb_AIS=AIS_Shape(obb_shape)
+            obb_AIS.SetTransparency(0.5)
+            display.Context.Display(obb_AIS,True)
+
+
+            if not iterator.next():
+                break
+
+    display.FitAll()
+    start_display()
+
+def display_direction():
+    chemin="Ifc_Model/Ifc2x3_Duplex_Architecture.ifc"
+    file=ifcopenshell.open(chemin)
+
+    objects=file.by_type("IFCDISTRIBUTIONCONTROLELEMENT")
+    #objects=file.by_type("IFCSPACE")
+    #objects=file.by_type("IFCWALL")
+    objects=file.by_type("IFCFURNISHINGELEMENT")
+    #objects=file.by_type("IFCDOOR")
+    #objet=objects[35]
+    objet=objects
+
+
+    placement=objet.ObjectPlacement
+
+
+    matrice = ifcopenshell.util.placement.get_local_placement(placement)
+    axe_x = matrice[:, 0][:3]  # Vecteur X (orientation locale)
+    axe_y = matrice[:, 1][:3]  # Vecteur Y (orientation locale)
+    axe_z = matrice[:, 2][:3]  # Vecteur Z (orientation locale)
+    position = tuple(matrice[:3, 3])
+    position=(position[0].item(),position[1].item(),position[2].item())  # [X, Y, Z]
+
+    direction=(axe_x[0].item(),axe_x[1].item(),axe_x[2].item())  # 
+
+    print(matrice)
+
+    
+    coordinate=objet.ObjectPlacement.RelativePlacement.Location.Coordinates
+
+    direction_z=(0.0,0.0,1.0)
+    u = np.array(direction)
+    v = np.array(direction_z)
+    w = np.cross(u, v)
+
+
+
+    #@todo la direction semble orhtogonal au devant des objets. Il faut clairement creer une fonction pour visualiser le devant des objets, afin de vérifier si cette assumption est la bonne. 
+
+
+    settings=ifcopenshell.geom.settings()
+    settings.set("use-python-opencascade", True)
+    #shape=ifcopenshell.geom.create_shape(settings,space.Representation)
+
+
+    iterator = ifcopenshell.geom.iterator(
+        settings,
+        file,
+        multiprocessing.cpu_count(),
+        include=[objet],
+    )
+
+
+    display,start_display,add_menu,add_funtion=init_display()
+
+    if iterator.initialize():
+        while True:
+            shape = iterator.get()
+            geom = shape.geometry
+
+            Suzanne_AIS=AIS_Shape(geom)
+            Suzanne_AIS.SetTransparency(0.5)
+
+            display.Context.Display(Suzanne_AIS,True)
 
         
-        # Récupérer le centre
-        center = obb_temp.Center()
 
-        # Créer une nouvelle OBB avec Z fixé
-        obb = Bnd_OBB()
-        z_dir = gp_Dir(0, 0, 1)
-        x_dir = gp_Dir(1, 0, 0)
-
-        half_size_x=obb_temp.XHSize()
-        half_size_y=obb_temp.YHSize()
-        half_size_z=obb_temp.ZHSize()
-
-        
-
-        # Projeter les dimensions sur le plan XY
-        obb.SetCenter(gp_Pnt(center))
-        obb.SetXComponent(x_dir, half_size_x)
-        obb.SetYComponent(gp_Dir(0, 1, 0), half_size_y)
-        obb.SetZComponent(z_dir, half_size_z)
-
-        #
-        obb_shape=fixed_OBB.create_obb_with_fixed_z(geom)
-        obb_shape=MakeBox(obb_shape)
-        obb_AIS=AIS_Shape(obb_shape)
-        obb_AIS.SetTransparency(0.5)
-        display.Context.Display(obb_AIS,True)
+            #
+            obb_shape=MakeBox_with_direction(w,coordinate)
+            obb_AIS=AIS_Shape(obb_shape)
+            obb_AIS.SetTransparency(0.5)
+            display.Context.Display(obb_AIS,True)
 
 
-        if not iterator.next():
-            break
+            if not iterator.next():
+                break
 
-display.FitAll()
-start_display()
+    display.FitAll()
+    start_display()
+
+
+if __name__ == "__main__":
+
+    display_direction()
