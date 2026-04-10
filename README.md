@@ -66,7 +66,7 @@ still WIP
     I want to create a catalog of rule. In order for them to work, i need a standardization of the functionality to expand them and make them work all together.
     
     For the standardisation, i started a dictionnary to explain my vocabulary. 
-    [Vocabulary](Clash_Expend/Rule.md)
+    [Vocabulary](doc/Rule.md)
 - Use IDS to select
     The idea is to reuse IDS Facet to select list of elements. I am pretty sure more and more people are starting to use it, so it will be easier for everyone with time.
 - Waterfall of Rule
@@ -88,34 +88,34 @@ still WIP
 I will do a sheet for every rule to describe the way it's working and the intended result of that rule.
 
 This is my starting point for a new rule.
-[Clearance Above Object](Clash_Expend/2ObjectsRules/ClearanceAbove)
+[Clearance Above Object](doc/2ObjectsRules/ClearanceAbove)
 
 ## Two Object Rule
-* [Clearance Above Object](Clash_Expend/2ObjectsRules/ClearanceAbove) Status:OK
-* [Clearance Next To Object](Clash_Expend/2ObjectsRules/ClearanceNextTo) Status:NOK
-* [Clearance Below Object](Clash_Expend/2ObjectsRules/ClearanceBelow) Status:NOK
-* [Cleareance OBB](Clash_Expend/2ObjectsRules/ClearanceOBB) Status:NOK
-* [Direct View](Clash_Expend/2ObjectsRules/DirectView) Status:NOK
-* [Face Check](Clash_Expend/2ObjectsRules/FaceCheck) Status:NOK
-* [Angle Between](Clash_Expend/2ObjectsRules/AngleBetween) Status:NOK
-* [Surface Recover](Clash_Expend/2ObjectsRules/SurfaceRecover) Status:NOK
+* [Clearance Above Object](doc/2ObjectsRules/ClearanceAbove) Status:OK
+* [Clearance Next To Object](doc/2ObjectsRules/ClearanceNextTo) Status:NOK
+* [Clearance Below Object](doc/2ObjectsRules/ClearanceBelow) Status:NOK
+* [Cleareance OBB](doc/2ObjectsRules/ClearanceOBB) Status:NOK
+* [Direct View](doc/2ObjectsRules/DirectView) Status:NOK
+* [Face Check](doc/2ObjectsRules/FaceCheck) Status:NOK
+* [Angle Between](doc/2ObjectsRules/AngleBetween) Status:NOK
+* [Surface Recover](doc/2ObjectsRules/SurfaceRecover) Status:NOK
 
 
 ## One Object Rule
-* [Volume](Clash_Expend/1ObjectsRules/Orientation) Status:Partial
-* [Area](Clash_Expend/1ObjectsRules/Area) Status:Partial
-* [Top Surface](Clash_Expend/1ObjectsRules/TopSurface) Status:Partial
-* [Bottom Surface](Clash_Expend/1ObjectsRules/BottomSurface) Status:NOK
-* [Lateral Surface](Clash_Expend/1ObjectsRules/LateralSurface) Status:NOK
-* [Projected Surface](Clash_Expend/1ObjectsRules/ProjectedSurface) Status:NOK
-* [Orientation](Clash_Expend/1ObjectsRules/Orientation) Status:NOK
+* [Volume](doc/1ObjectsRules/Orientation) Status:Partial
+* [Area](doc/1ObjectsRules/Area) Status:Partial
+* [Top Surface](doc/1ObjectsRules/TopSurface) Status:Partial
+* [Bottom Surface](doc/1ObjectsRules/BottomSurface) Status:NOK
+* [Lateral Surface](doc/1ObjectsRules/LateralSurface) Status:NOK
+* [Projected Surface](doc/1ObjectsRules/ProjectedSurface) Status:NOK
+* [Orientation](doc/1ObjectsRules/Orientation) Status:NOK
 
 
 ## Complex Rule
-* [Free Space in Room](Clash_Expend/1ObjectsRules/Orientation) Status:NOK
-* [Find Path](Clash_Expend/ComplexRules/FindPath) Status:NOK
-* [EvacuationDistance](Clash_Expend/ComplexRules/EvacuationDistance) Status:NOK
-* [Alignement](Clash_Expend/ComplexRules/Alignement) Status:NOK
+* [Free Space in Room](doc/1ObjectsRules/Orientation) Status:NOK
+* [Find Path](doc/ComplexRules/FindPath) Status:NOK
+* [EvacuationDistance](doc/ComplexRules/EvacuationDistance) Status:NOK
+* [Alignement](doc/ComplexRules/Alignement) Status:NOK
 
 
 # Todo List
