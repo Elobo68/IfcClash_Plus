@@ -133,7 +133,14 @@ def min_distance_two_faces(ListPoint1, ListPoint2):
         }
     
     raise RuntimeError("Fail to calculate distance")
-            
+
+def get_XYZ_placement(Object):
+    Origin = ifcopenshell.util.placement.get_local_placement(
+        Object.ObjectPlacement
+    )
+    Origin = Origin[:, 3][:3]
+    Origin = (float(Origin[0]), float(Origin[1]), float(Origin[2]))
+    return Origin         
 
 
 

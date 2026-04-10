@@ -14,6 +14,10 @@ from ifcopenshell.util.shape import (
 import clash_utils
 import numpy as np
 from typing import Literal
+from CustomOBB import create_obb_via_pca
+from OCC.Core.BRepExtrema import BRepExtrema_DistShapeShape
+from RuleClass import Select
+import ifcopenshell.util.placement
 
 # ===========One Object Rule
 class Volume(RuleCheckOneObject):
@@ -231,7 +235,6 @@ class Intersection(RuleCheckTwoObjects):
         if state == "Select":
             self.produce_select()
 
-
 class Clearance(RuleCheckTwoObjects):
     def __init__(self, source, target, clearance=0.05):
         super().__init__(source, target)
@@ -249,7 +252,7 @@ class Clearance(RuleCheckTwoObjects):
         source_elements = []
         target_elements = []
 
-        #@todo update this script
+        # @todo update this script
         for file in self.select_source.dict_elements.keys():
             list = self.select_source.dict_elements[file]
             for element in list:
@@ -316,7 +319,7 @@ class Collision(RuleCheckTwoObjects):
         self.add_to_tree(self.select_source, "BVH")
         self.add_to_tree(self.select_target, "BVH")
 
-        temp_result= self.tree.clash_collision_many(
+        temp_result = self.tree.clash_collision_many(
             self.select_source.list_of_elements,
             self.select_target.list_of_elements,
             allow_touching=self.allow_touching,
@@ -351,23 +354,91 @@ class Collision(RuleCheckTwoObjects):
 
 
 class Ray_Check(RuleCheckTwoObjects):
-    def __init__(self, source, target, context):
+    def __init__(self, source, target, context,max_ray_length):
         super().__init__(source, target)
         self.type = "RayCheck"
-        self.Select_Context_Element = context
-        self.length: float = 5.0
+        self.select_context: Select = context
+        self.max_ray_length: float = max_ray_length
         self.geom_settings = ifcopenshell.geom.settings()
+        #self.geom_settings=ifcopenshell.geom.settings(USE_WORLD_COORDS=True)
 
     def run(self, state="Final"):
         self.tree = ifcopenshell.geom.tree()
         self.select_source.run()
         self.select_target.run()
 
-        self.add_to_tree(self.select_source, "UB")
-        self.add_to_tree(self.select_target, "UB")
-        self.add_to_tree(self.Select_Context_Element)
 
-        #@todo Finish Ray Check
+        #Watch out, we need to manually store the file info in the contect. It's not done when the RuleFile begin.
+        #@todo improve this in order to update every select in every rule
+        self.select_context.list_ifc_path=self.select_source.list_ifc_path
+        self.select_context.list_ifc_file=self.select_source.list_ifc_file
+        self.select_context.run()
+
+
+        self.add_to_tree(self.select_context,"UB")
+        #self.add_to_tree(self.select_source, "UB")
+        #self.add_to_tree(self.select_target, "UB")
+        
+        self.select_source.create_list_of_element()
+        self.select_target.create_list_of_element()
+        self.select_context.create_list_of_element()
+
+        for source in self.select_source.list_of_elements:
+            for target in self.select_target.list_of_elements:
+
+                source_position=clash_utils.get_XYZ_placement(source)
+                target_position=clash_utils.get_XYZ_placement(target)
+                source_array = np.array(source_position)
+                target_array = np.array(target_position)
+                        
+                direction = target_array - source_array
+
+
+                distance = np.linalg.norm(direction)
+                if distance==0:
+                    #It's the same object
+                    continue
+
+                direction = tuple(direction.flatten())
+                direction = (
+                    float(direction[0] / distance),
+                    float(direction[1] / distance),
+                    float(direction[2] / distance),
+                )
+
+
+
+                results = self.tree.select_ray(source_position, direction, length=distance)
+                
+                number=0
+                for result in results:
+                    """
+                    distance: Any
+                    dot_product: Any
+                    instance: Any
+                    normal: Any
+                    position: Any
+                    ray_distance: Any
+                    style_index: Any
+                    """
+                    result_object = result.instance.file_.by_id(result.instance.id())
+                    #the ray is not working properly. Something is off.
+                    
+
+                    #The clash will append when we can detect two object that are in direct view.
+
+
+                    #print(result_object,target)
+                    if result_object==target:
+                        print(target)
+                
+
+
+
+
+
+        #self.tree.select_ray()
+        # @todo Finish Ray Check
         print("Not working, must be defined")
 
     def Coherence_Check(self):
@@ -384,16 +455,10 @@ class Ray_Check(RuleCheckTwoObjects):
 
         self.add_to_tree(self.Select_Context_Element, "UB")
 
-        def get_XYZ_placement(Object):
-            Origin = ifcopenshell.util.placement.get_local_placement(
-                Object.ObjectPlacement
-            )
-            Origin = Origin[:, 3][:3]
-            Origin = (float(Origin[0]), float(Origin[1]), float(Origin[2]))
-            return Origin
 
-        source_position = get_XYZ_placement(self.Select_Source)
-        target_position = get_XYZ_placement(self.Select_Target)
+
+        source_position = clash_utils.get_XYZ_placement(self.Select_Source)
+        target_position = clash_utils.get_XYZ_placement(self.Select_Target)
         source_array = np.array(source_position)
         target_array = np.array(target_position)
 
@@ -439,7 +504,6 @@ ABOVE_TYPE = Literal[
 BELOW_TYPE = Literal[
     "Below_MinToMax", "Below_MinToMin", "Below_MaxToMin", "Below_MaxToMax"
 ]
-
 
 
 class Above(RuleCheckTwoObjects):
@@ -586,6 +650,151 @@ class Above(RuleCheckTwoObjects):
         if state == "Select":
             self.produce_select()
 
+class Below(RuleCheckTwoObjects): #@todo Check this rule
+    def __init__(self, source, target, above_type: BELOW_TYPE, tolerance=0.1):
+        super().__init__(source, target)
+        self.type = above_type
+        self.tolerance: float = tolerance
+        self.geom_settings = ifcopenshell.geom.settings(USE_WORLD_COORDS=True)
+
+    def run(self, state="Final"):
+        self.tree = ifcopenshell.geom.tree()
+        self.select_source.run()
+        self.select_target.run()
+
+        sources_faces = []
+        targets_faces = []
+
+        if "MinTo" in self.type:
+            source_direction = (0.0, 0.0, -1.0)
+        else:
+            source_direction = (0.0, 0.0, 1.0)
+
+        if "ToMin" in self.type:
+            target_direction = (0.0, 0.0, -1.0)
+        else:
+            target_direction = (0.0, 0.0, 1.0)
+
+        # Check the extrem face of the source
+        for ifc_file in self.select_source.dict_elements.keys():
+            iterator = ifcopenshell.geom.iterator(
+                self.geom_settings,
+                ifc_file,
+                multiprocessing.cpu_count(),
+                include=self.select_source.dict_elements[ifc_file],
+            )
+
+            if iterator.initialize():
+                while True:
+                    shape = iterator.get()
+                    geom = shape.geometry
+                    extrem_faces = clash_utils.get_extreme_faces(
+                        geometry=geom, direction=source_direction
+                    )
+                    vertices = get_vertices(geom)
+                    dict = {
+                        "entity": ifc_file.by_id(shape.id),
+                        "vertices": vertices,
+                        "extrem_faces": extrem_faces,
+                    }
+                    sources_faces.append(dict)
+
+                    if not iterator.next():
+                        break
+
+        # Check the extrem face of the target
+        for ifc_file in self.select_target.dict_elements.keys():
+            iterator = ifcopenshell.geom.iterator(
+                self.geom_settings,
+                ifc_file,
+                multiprocessing.cpu_count(),
+                include=self.select_target.dict_elements[ifc_file],
+            )
+
+            if iterator.initialize():
+                while True:
+                    shape = iterator.get()
+                    geom = shape.geometry
+                    extrem_faces = clash_utils.get_extreme_faces(
+                        geometry=geom, direction=target_direction
+                    )
+                    vertices = get_vertices(geom)
+                    dict = {
+                        "entity": ifc_file.by_id(shape.id),
+                        "vertices": vertices,
+                        "extrem_faces": extrem_faces,
+                    }
+                    targets_faces.append(dict)
+
+                    if not iterator.next():
+                        break
+
+        list_result = []
+
+        # Check if part of extrem faces are close to each other
+        for source_faces in sources_faces:
+            for target_faces in targets_faces:
+                for source_face in source_faces["extrem_faces"]:
+                    s0 = source_faces["vertices"][source_face[0]]
+                    s1 = source_faces["vertices"][source_face[1]]
+                    s2 = source_faces["vertices"][source_face[2]]
+                    source_center = (s0 + s1 + s2) / 3
+                    s = [s0, s1, s2]
+
+                    min_distance_found = None
+                    selected_result = None
+
+                    for taget_face in target_faces["extrem_faces"]:
+                        t0 = target_faces["vertices"][taget_face[0]]
+                        t1 = target_faces["vertices"][taget_face[1]]
+                        t2 = target_faces["vertices"][taget_face[2]]
+                        target_center = (t0 + t1 + t2) / 3
+
+                        t = [t0, t1, t2]
+
+                        dist = clash_utils.min_distance_two_faces(s, t)
+
+                        # The target face must be below the source.
+                        check_below = (source_center - target_center)[2]
+                        if check_below < 0:
+                            continue
+
+                        # @todo If the object is above but with an offset in x or y, it will be detected as well.
+
+                        # we only select the worst case scenario.
+                        if dist["distance"] < self.tolerance:
+                            if min_distance_found is None:
+                                min_distance_found = dist["distance"]
+                                selected_result = {
+                                    "source": source_faces["entity"],
+                                    "target": target_faces["entity"],
+                                }
+                                continue
+                            if min_distance_found < dist["distance"]:
+                                min_distance_found = dist["distance"]
+                                selected_result = {
+                                    "source": source_faces["entity"],
+                                    "target": target_faces["entity"],
+                                }
+
+                    if selected_result is not None:
+                        list_result.append(
+                            ClashResultTwoObjects(
+                                source=selected_result["source"],
+                                target=selected_result["target"],
+                                state=True,
+                            )
+                        )
+
+        self.result = list_result
+
+        if state == "Final":
+            self.manage_result()
+
+        if state == "Select":
+            self.produce_select()
+
+
 class Template(RuleCheckTwoObjects):
     def __init__(self, source, target, tolerance=0.1):
         super().__init__(source, target)
@@ -600,17 +809,21 @@ class Template(RuleCheckTwoObjects):
         if state == "Select":
             self.produce_select()
 
-class OBB_Clearance(RuleCheckTwoObjects):
-    def __init__(self, source, target, tolerance=0.1):
+
+class OBB_Above(RuleCheckTwoObjects):
+    def __init__(self, source, target, tolerance):
         super().__init__(source, target)
         self.tolerance: float = tolerance
-        self.geom_settings = ifcopenshell.geom.settings(USE_WORLD_COORDS=False)
+        self.geom_settings = ifcopenshell.geom.settings()
+        self.geom_settings.set(self.geom_settings.USE_PYTHON_OPENCASCADE, True)
 
     def run(self, state="Final"):
         self.tree = ifcopenshell.geom.tree()
         self.select_source.run()
         self.select_target.run()
 
+        # Create OBBs for source objects (these serve as detection zones)
+        source_obbs = []
         for ifc_file in self.select_source.dict_elements.keys():
             iterator = ifcopenshell.geom.iterator(
                 self.geom_settings,
@@ -623,12 +836,60 @@ class OBB_Clearance(RuleCheckTwoObjects):
                 while True:
                     shape = iterator.get()
                     geom = shape.geometry
+                    entity = ifc_file.by_id(shape.data.id)
 
+                    # Create OBB for the source object (detection zone)
+                    obb = create_obb_via_pca(geom)
+                    clash_obb = obb.detach_top_by_extrude(self.tolerance)
+                    compound = clash_obb.to_compound()
+                    source_obbs.append({"entity": entity, "geom": compound})
 
                     if not iterator.next():
                         break
 
+        # Get target geometries
+        target_geoms = []
+        for ifc_file in self.select_target.dict_elements.keys():
+            # self.geom_settings.set(self.geom_settings.USE_PYTHON_OPENCASCADE,True)
+            iterator = ifcopenshell.geom.iterator(
+                self.geom_settings,
+                ifc_file,
+                multiprocessing.cpu_count(),
+                include=self.select_target.dict_elements[ifc_file],
+            )
 
+            if iterator.initialize():
+                while True:
+                    shape = iterator.get()
+                    geom = shape.geometry
+                    entity = ifc_file.by_id(shape.data.id)
+
+                    target_geoms.append({"entity": entity, "geom": geom})
+
+                    if not iterator.next():
+                        break
+
+        # Check for clashes between source OBBs (detection zones) and target geometries
+        for source_data in source_obbs:
+            for target_data in target_geoms:
+                source_geom = source_data["geom"]
+                target_geom = target_data["geom"]
+
+                # Calculate distance between OBB and geometry
+                dist_tool = BRepExtrema_DistShapeShape()
+                dist_tool.LoadS1(source_geom)
+                dist_tool.LoadS2(target_geom)
+                dist_tool.Perform()
+                distance = dist_tool.Value()
+
+                # If they touch (distance <= tolerance) and target is above source, it's a clash
+                if distance <= 1e-6:
+                    result = ClashResultTwoObjects(
+                        source=source_data["entity"],
+                        target=target_data["entity"],
+                        state=False,
+                    )
+                    self.result.append(result)
 
         if state == "Final":
             self.manage_result()
@@ -636,6 +897,189 @@ class OBB_Clearance(RuleCheckTwoObjects):
         if state == "Select":
             self.produce_select()
 
+class OBB_Below(RuleCheckTwoObjects):
+    def __init__(self, source, target, tolerance):
+        super().__init__(source, target)
+        self.tolerance: float = tolerance
+        self.geom_settings = ifcopenshell.geom.settings()
+        self.geom_settings.set(self.geom_settings.USE_PYTHON_OPENCASCADE, True)
+
+    def run(self, state="Final"):
+        self.tree = ifcopenshell.geom.tree()
+        self.select_source.run()
+        self.select_target.run()
+
+        # Create OBBs for source objects (these serve as detection zones)
+        source_obbs = []
+        for ifc_file in self.select_source.dict_elements.keys():
+            iterator = ifcopenshell.geom.iterator(
+                self.geom_settings,
+                ifc_file,
+                multiprocessing.cpu_count(),
+                include=self.select_source.dict_elements[ifc_file],
+            )
+
+            if iterator.initialize():
+                while True:
+                    shape = iterator.get()
+                    geom = shape.geometry
+                    entity = ifc_file.by_id(shape.data.id)
+
+                    # Create OBB for the source object (detection zone)
+                    obb = create_obb_via_pca(geom)
+                    clash_obb = obb.detach_bottom_by_extrude(self.tolerance)
+                    compound = clash_obb.to_compound()
+                    source_obbs.append({"entity": entity, "geom": compound})
+
+                    if not iterator.next():
+                        break
+
+        # Get target geometries
+        target_geoms = []
+        for ifc_file in self.select_target.dict_elements.keys():
+            # self.geom_settings.set(self.geom_settings.USE_PYTHON_OPENCASCADE,True)
+            iterator = ifcopenshell.geom.iterator(
+                self.geom_settings,
+                ifc_file,
+                multiprocessing.cpu_count(),
+                include=self.select_target.dict_elements[ifc_file],
+            )
+
+            if iterator.initialize():
+                while True:
+                    shape = iterator.get()
+                    geom = shape.geometry
+                    entity = ifc_file.by_id(shape.data.id)
+
+                    target_geoms.append({"entity": entity, "geom": geom})
+
+                    if not iterator.next():
+                        break
+
+        # Check for clashes between source OBBs (detection zones) and target geometries
+        for source_data in source_obbs:
+            for target_data in target_geoms:
+                source_geom = source_data["geom"]
+                target_geom = target_data["geom"]
+
+                # Calculate distance between OBB and geometry
+                dist_tool = BRepExtrema_DistShapeShape()
+                dist_tool.LoadS1(source_geom)
+                dist_tool.LoadS2(target_geom)
+                dist_tool.Perform()
+                distance = dist_tool.Value()
+
+                # If they touch (distance <= tolerance) and target is above source, it's a clash
+                if distance <= 1e-6:
+                    result = ClashResultTwoObjects(
+                        source=source_data["entity"],
+                        target=target_data["entity"],
+                        state=False,
+                    )
+                    self.result.append(result)
+
+        if state == "Final":
+            self.manage_result()
+
+        if state == "Select":
+            self.produce_select()
+
+
+DIRECTION_METHOD = Literal[
+    "Wide", "Narrow"]
+
+class OBB_Front_And_Back(RuleCheckTwoObjects):
+    def __init__(self, source, target, tolerance,method:DIRECTION_METHOD):
+        super().__init__(source, target)
+        self.tolerance: float = tolerance
+        self.geom_settings = ifcopenshell.geom.settings()
+        self.geom_settings.set(self.geom_settings.USE_PYTHON_OPENCASCADE, True)
+        self.direction_method=method
+
+    def run(self, state="Final"):
+        self.tree = ifcopenshell.geom.tree()
+        self.select_source.run()
+        self.select_target.run()
+
+        # Create OBBs for source objects (these serve as detection zones)
+        source_obbs = []
+        for ifc_file in self.select_source.dict_elements.keys():
+            iterator = ifcopenshell.geom.iterator(
+                self.geom_settings,
+                ifc_file,
+                multiprocessing.cpu_count(),
+                include=self.select_source.dict_elements[ifc_file],
+            )
+
+            if iterator.initialize():
+                while True:
+                    shape = iterator.get()
+                    geom = shape.geometry
+                    entity = ifc_file.by_id(shape.data.id)
+
+                    # Create OBB for the source object (detection zone)
+                    obb = create_obb_via_pca(geom)
+                    main_directions=obb.get_two_main_direction_OBB_shape(self.direction_method)
+                    clash_obb_1=obb.detach_side_by_extrude(main_directions[0],self.tolerance)
+                    clash_obb_2=obb.detach_side_by_extrude(main_directions[0],self.tolerance)
+
+                    compound_1 = clash_obb_1.to_compound()
+                    compound_2 = clash_obb_2.to_compound()
+                    source_obbs.append({"entity": entity, "geom": compound_1})
+                    source_obbs.append({"entity": entity, "geom": compound_2})
+
+                    if not iterator.next():
+                        break
+
+        # Get target geometries
+        target_geoms = []
+        for ifc_file in self.select_target.dict_elements.keys():
+            # self.geom_settings.set(self.geom_settings.USE_PYTHON_OPENCASCADE,True)
+            iterator = ifcopenshell.geom.iterator(
+                self.geom_settings,
+                ifc_file,
+                multiprocessing.cpu_count(),
+                include=self.select_target.dict_elements[ifc_file],
+            )
+
+            if iterator.initialize():
+                while True:
+                    shape = iterator.get()
+                    geom = shape.geometry
+                    entity = ifc_file.by_id(shape.data.id)
+
+                    target_geoms.append({"entity": entity, "geom": geom})
+
+                    if not iterator.next():
+                        break
+
+        # Check for clashes between source OBBs (detection zones) and target geometries
+        for source_data in source_obbs:
+            for target_data in target_geoms:
+                source_geom = source_data["geom"]
+                target_geom = target_data["geom"]
+
+                # Calculate distance between OBB and geometry
+                dist_tool = BRepExtrema_DistShapeShape()
+                dist_tool.LoadS1(source_geom)
+                dist_tool.LoadS2(target_geom)
+                dist_tool.Perform()
+                distance = dist_tool.Value()
+
+                # If they touch (distance <= tolerance) and target is above source, it's a clash
+                if distance <= 1e-6:
+                    result = ClashResultTwoObjects(
+                        source=source_data["entity"],
+                        target=target_data["entity"],
+                        state=False,
+                    )
+                    self.result.append(result)
+
+        if state == "Final":
+            self.manage_result()
+
+        if state == "Select":
+            self.produce_select()
 
 
 # ===== Complex Rule

@@ -1,0 +1,5 @@
+ifcopenshell
+numpy
+OCC.Core
+trimesh
+shapely

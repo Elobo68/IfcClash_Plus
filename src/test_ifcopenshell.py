@@ -5,14 +5,114 @@ import multiprocessing
 from OCC.Core.Bnd import Bnd_OBB
 from OCC.Core.BRepBndLib import brepbndlib
 from OCC.Core.gp import gp_Dir,gp_XYZ,gp_Ax3,gp_Trsf,gp_Pnt,gp_Vec,gp_Ax1
+from OCC.Core.Quantity import Quantity_Color, Quantity_TOC_RGB
 from OCC.Display.SimpleGui import init_display
 from OCC.Core.AIS import AIS_Shape
 from OCC.Core.BRepPrimAPI import BRepPrimAPI_MakeBox
 from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_Transform,BRepBuilderAPI_MakePolygon
 import OCC.Core.BRepPrimAPI as br
-import fixed_OBB
+import CustomOBB
 import numpy as np
 import ifcopenshell.util.placement
+
+
+
+def get_front_direction_from_placement(placement, angle_offset=0, use_y_axis=False):
+    """
+    Détermine la direction du devant d'un objet IFC en fonction de son IfcAxis2Placement3D.
+    
+    Args:
+        placement: L'objet IfcPlacement de l'objet IFC.
+        angle_offset: Angle en degrés pour ajuster manuellement la direction (par défaut 0).
+        use_y_axis: Si True, utilise l'axe Y au lieu de l'axe X pour la direction (par défaut False).
+    
+    Returns:
+        tuple: Un tuple représentant la direction du devant de l'objet.
+    """
+    matrice = ifcopenshell.util.placement.get_local_placement(placement)
+    axe_x = matrice[:, 0][:3]  # Vecteur X (orientation locale)
+    axe_y = matrice[:, 1][:3]  # Vecteur Y (orientation locale)
+    axe_z = matrice[:, 2][:3]  # Vecteur Z (orientation locale)
+    
+    # La direction du devant est généralement l'axe X local, mais peut être ajustée
+    if use_y_axis:
+        front_direction = (axe_y[0].item(), axe_y[1].item(), axe_y[2].item())
+    else:
+        front_direction = (axe_x[0].item(), axe_x[1].item(), axe_x[2].item())
+    
+    # Appliquer une rotation si un angle est spécifié
+    if angle_offset != 0:
+        import math
+        angle_rad = math.radians(angle_offset)
+        # Rotation autour de l'axe Z
+        new_x = front_direction[0] * math.cos(angle_rad) - front_direction[1] * math.sin(angle_rad)
+        new_y = front_direction[0] * math.sin(angle_rad) + front_direction[1] * math.cos(angle_rad)
+        front_direction = (new_x, new_y, front_direction[2])
+    
+    return front_direction
+
+
+def display_front_direction(file_path,  angle_offset=0):
+    """
+    Visualise la direction du devant d'un ou plusieurs objets IFC dans un display.
+    
+    Args:
+        file_path: Chemin vers le fichier IFC.
+        object_indices: Liste d'indices des objets à visualiser (par défaut None pour tous les objets).
+        angle_offset: Angle en degrés pour ajuster manuellement la direction (par défaut 0).
+    """
+    file = ifcopenshell.open(file_path)
+    objects = file.by_type("IFCFURNISHINGELEMENT")
+    
+    if not objects:
+        print("Aucun objet IFCFURNISHINGELEMENT trouvé.")
+        return
+    
+    settings = ifcopenshell.geom.settings()
+    settings.set("use-python-opencascade", True)
+    
+    iterator = ifcopenshell.geom.iterator(
+        settings,
+        file,
+        multiprocessing.cpu_count(),
+        include=objects,
+    )
+    
+    display, start_display, add_menu, add_function = init_display()
+    
+    if iterator.initialize():
+        while True:
+            shape = iterator.get()
+            geom = shape.geometry
+            
+            ais_shape = AIS_Shape(geom)
+            ais_shape.SetTransparency(0.5)
+            display.Context.Display(ais_shape, True)
+            
+            if not iterator.next():
+                break
+    
+    # Afficher les flèches de direction pour les objets spécifiés
+    for objet in objects:
+        placement = objet.ObjectPlacement
+        front_direction = get_front_direction_from_placement(placement, angle_offset,True)
+
+        
+        
+
+        # Obtenir la matrice de placement pour extraire le centre
+        matrice = ifcopenshell.util.placement.get_local_placement(placement)
+        position = matrice[:3, 3]  # Position (centre) de l'objet
+        coordinate = (position[0].item(), position[1].item(), position[2].item())
+        
+        # Créer une flèche pour visualiser la direction du devant
+        front_arrow = MakeBox_with_direction(front_direction, coordinate)
+        front_arrow_AIS = AIS_Shape(front_arrow)
+        front_arrow_AIS.SetColor(Quantity_Color(1.0, 0.0, 0.0, Quantity_TOC_RGB))  # Rouge pour la direction du devant
+        display.Context.Display(front_arrow_AIS, True)
+    
+    display.FitAll()
+    start_display()
 
 
 def OBB_To_Shape(obb:Bnd_OBB):
@@ -155,7 +255,7 @@ def display_box():
             obb.SetZComponent(z_dir, half_size_z)
 
             #
-            obb_shape=fixed_OBB.create_obb_with_fixed_z(geom)
+            obb_shape=CustomOBB.create_obb_with_fixed_z(geom)
             obb_shape=MakeBox(obb_shape)
             obb_AIS=AIS_Shape(obb_shape)
             obb_AIS.SetTransparency(0.5)
@@ -177,8 +277,8 @@ def display_direction():
     #objects=file.by_type("IFCWALL")
     objects=file.by_type("IFCFURNISHINGELEMENT")
     #objects=file.by_type("IFCDOOR")
-    #objet=objects[35]
-    objet=objects
+    objet=objects[35]
+    #objet=objects
 
 
     placement=objet.ObjectPlacement
@@ -250,5 +350,5 @@ def display_direction():
 
 
 if __name__ == "__main__":
-
-    display_direction()
+    chemin="Ifc_Model/Ifc2x3_Duplex_Architecture.ifc"
+    display_front_direction(chemin,angle_offset=180)

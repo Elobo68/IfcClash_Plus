@@ -104,9 +104,6 @@ class Select:
             self.list_of_elements = self.dict_elements[onefile] + self.list_of_elements
 
 
-
-
-
 class SelectFacet(Select):
     def __init__(self, ClassificationType="Facet"):
         super().__init__()
@@ -165,7 +162,7 @@ class SelectRule(Select):
     def update_file_info(self, files_path, files):
         self.list_ifc_path = files_path
         self.list_ifc_file = files
-        self.rule.update_file_info(files_path,files)
+        self.rule.update_file_info(files_path, files)
 
 
 @abstractmethod
@@ -194,17 +191,17 @@ class RuleCheck:
                 multiprocessing.cpu_count(),
                 include=Select.dict_elements[ifc_file],
             )
+ 
+            if iterator.initialize():
+                while True:
+                    if type_of_tree == "BVH":
+                        self.tree.add_element(iterator.get())
+                    if type_of_tree == "UB":
+                        self.tree.add_element(iterator.get_native())
 
-        if iterator.initialize():
-            while True:
-                if type_of_tree == "BVH":
-                    self.tree.add_element(iterator.get())
-                if type_of_tree == "UB":
-                    self.tree.add_element(iterator.get_native())
-
-                shape = iterator.get()
-                if not iterator.next():
-                    break
+                    shape = iterator.get()
+                    if not iterator.next():
+                        break
 
     def add_OneObject_to_tree(self, Object, type_of_tree):
         iterator = ifcopenshell.geom.iterator(
@@ -371,25 +368,22 @@ class RuleCheckOneObject(RuleCheck):
             if filter_flag:
                 result.actor.append(self.select_actor.classification_name)
 
-
     def run_abs_or_rel(self):
         if self.abs_or_rel_check is None:
             return None
-        
+
         self.abs_or_rel_check.run()
 
         return True
 
-
     def manage_result(self):
-        
+
         self.run_criticity()
         self.run_actor()
 
         # Only one is possible, it either grouping or must. Not both of them
         if self.run_abs_or_rel() is None:
             self.run_grouping()
-
 
     def update_file_info(self, files_path, files):
         self.select_source.update_file_info(files_path, files)
@@ -528,15 +522,14 @@ class RuleCheckTwoObjects(RuleCheck):
             print("TODO")
             # @todo Grouping by closeness for 2 objects rules, reuse IfcClash
 
-        def grouping_by_object(self,source_or_target):
+        def grouping_by_object(self, source_or_target):
             group_dict = {}
             for result in self.result:
-
-                if source_or_target=="source":
+                if source_or_target == "source":
                     unique_value = result.source
-                if source_or_target=="target":
+                if source_or_target == "target":
                     unique_value = result.target
-                
+
                 if unique_value not in group_dict:
                     thegroupresult = GroupResult()
                     thegroupresult.add_source_and_target(result)
@@ -622,15 +615,12 @@ class RuleCheckTwoObjects(RuleCheck):
     def run_abs_or_rel(self):
         if self.abs_or_rel_check is None:
             return None
-        
 
         self.run_grouping(self.abs_or_rel_check.groupby_method)
-        
-        
+
         self.abs_or_rel_check.run(self.grouped_result)
 
         return True
-
 
     def update_file_info(self, files_path, files):
         self.select_source.update_file_info(files_path, files)
@@ -785,9 +775,8 @@ class ClashResult:
         self.criticity: list[str] = []
         self.actor: list[str] = []
 
-
-        self.point1 : tuple() #@todo Validate the info to export from the clash
-        self.point2 : tuple() #To validate, list of point
+        self.point1: tuple()  # @todo Validate the info to export from the clash
+        self.point2: tuple()  # To validate, list of point
 
 
 class ClashResultOneObject(ClashResult):
