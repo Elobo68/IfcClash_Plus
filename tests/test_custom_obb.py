@@ -2,8 +2,10 @@
 Test suite for Custom_OBB class in fixed_OBB.py
 """
 import unittest
+import sys
+sys.path.insert(0, './ifcclash_plus')
 from OCC.Core.gp import gp_Pnt, gp_Dir, gp_Vec
-from src.CustomOBB import Custom_OBB
+from CustomOBB import Custom_OBB
 
 
 class TestCustomOBB(unittest.TestCase):

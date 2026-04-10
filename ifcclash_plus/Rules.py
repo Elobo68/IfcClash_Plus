@@ -3,6 +3,7 @@ from RuleClass import (
     RuleCheckTwoObjects,
     ClashResultOneObject,
     ClashResultTwoObjects,
+    Select
 )
 import ifcopenshell
 import multiprocessing
@@ -11,12 +12,10 @@ import shapely
 from ifcopenshell.util.shape import (
     get_vertices,
 )
-import clash_utils
 import numpy as np
 from typing import Literal
 from CustomOBB import create_obb_from_TopoDs_Shape_via_pca,create_obb_with_free_z
 from OCC.Core.BRepExtrema import BRepExtrema_DistShapeShape
-from RuleClass import Select
 import ifcopenshell.util.placement
 
 # ===========One Object Rule
@@ -495,6 +494,7 @@ class Ray_Check(RuleCheckTwoObjects):
             if Object != self.Select_Target:
                 print("Error", Object)
                 return False
+
 
 
 ABOVE_TYPE = Literal[
