@@ -38,6 +38,7 @@ This is a customOBB class made with the Bnd_OBB() class from OCC. It will help t
 This new OBB will then create a new space that can clash with objects.
 The obb is very convienent to modify, and easy enough to apply transformation.
 
+- Function to generate OBB
 I created several function to generate OBB from object. Some of them are better than other.
 One of them, is interessting, because it create an OBB with the Z axis stuck to (0,0,1). It's helpful for box like object.
 
@@ -54,7 +55,7 @@ This rule will check if something is in front or in the back of the object.
 It's quite hard to detect what is the front and back. I am using the size of the OBB to detect that. It will be then dependent to each objects.
 For a door, the front is the wide part. For some other object, it will be the narrow part.
 
-- Added a few test case
+- Added a few test case to help debug everything
 still WIP
 
 1. Expand number of rule and create the base structure for rules
