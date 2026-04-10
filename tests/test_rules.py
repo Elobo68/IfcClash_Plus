@@ -6,7 +6,7 @@ import ifcopenshell
 import sys
 sys.path.insert(0, './ifcclash_plus')
 from Rules import Volume, Area, TopSurface, Intersection, Above, OBB_Above
-from RuleClass import SelectFacet
+from RuleClass import SelectFacet,RuleFile,ClashResultOneObject,ClashResultTwoObjects,Collision,Clearance
 from ifctester import ids
 
 
@@ -23,71 +23,145 @@ class TestRules(unittest.TestCase):
 
     def test_volume_rule(self):
         """Test Volume rule"""
+
+        OneRuleFile = RuleFile()
+        OneRuleFile.list_ifc_path= [self.ifc_path]
+
         wall_facet = ids.Entity(name="IFCWALLSTANDARDCASE")
         select_facet = SelectFacet()
         select_facet.applicability = [wall_facet]
-        select_facet.list_ifc_path = [self.ifc_path]
 
-        volume_rule = Volume(select_facet, 0.001, 1000)
-        volume_rule.run()
+        volume_rule = Volume(select_facet, 16, 17)
 
-        self.assertGreaterEqual(len(volume_rule.result), 0) #@todo create a real test
+        OneRuleFile.contains=[volume_rule]
+        OneRuleFile.run()
+
+        self.assertEqual(len(volume_rule.result), 2) 
         for result in volume_rule.result:
-            self.assertIsInstance(result, volume_rule.ClashResultOneObject)
+            self.assertIsInstance(result, ClashResultOneObject)
 
     def test_area_rule(self):
-        """Test Area rule"""
+        """Test area rule"""
+
+        OneRuleFile = RuleFile()
+        OneRuleFile.list_ifc_path= [self.ifc_path]
+
         wall_facet = ids.Entity(name="IFCWALLSTANDARDCASE")
         select_facet = SelectFacet()
         select_facet.applicability = [wall_facet]
-        select_facet.list_ifc_path = [self.ifc_path]
 
-        area_rule = Area(select_facet, 0.001, 1000)
-        area_rule.run()
+        area_rule = Area(select_facet, 0, 1)
 
-        self.assertGreaterEqual(len(area_rule.result), 0) #@todo create a real test
+        OneRuleFile.contains=[area_rule]
+        OneRuleFile.run()
+
+        self.assertEqual(len(area_rule.result), 8) 
         for result in area_rule.result:
-            self.assertIsInstance(result, area_rule.ClashResultOneObject)
+            self.assertIsInstance(result, ClashResultOneObject)
 
     def test_top_surface_rule(self):
         """Test TopSurface rule"""
-        wall_facet = ids.Entity(name="IFCWALLSTANDARDCASE")
+        OneRuleFile = RuleFile()
+        OneRuleFile.list_ifc_path= [self.ifc_path]
+
+        wall_facet = ids.Entity(name="IFCFURNISHINGELEMENT")
         select_facet = SelectFacet()
         select_facet.applicability = [wall_facet]
-        select_facet.list_ifc_path = [self.ifc_path]
 
-        top_surface_rule = TopSurface(select_facet, 0.001, 1000)
-        top_surface_rule.run()
+        top_surface_rule = TopSurface(select_facet, 1, 2)
 
-        self.assertGreaterEqual(len(top_surface_rule.result), 0) #@todo create a real test
+        OneRuleFile.contains=[top_surface_rule]
+        OneRuleFile.run()
+
+        self.assertEqual(len(top_surface_rule.result), 4) 
         for result in top_surface_rule.result:
-            self.assertIsInstance(result, top_surface_rule.ClashResultOneObject)
+            self.assertIsInstance(result, ClashResultOneObject)
 
     def test_intersection_rule(self):
         """Test Intersection rule"""
+
+        OneRuleFile = RuleFile()
+        OneRuleFile.list_ifc_path= [self.ifc_path]
         wall_facet = ids.Entity(name="IFCWALLSTANDARDCASE")
         wall_select = SelectFacet()
         wall_select.applicability = [wall_facet]
         wall_select.list_ifc_path = [self.ifc_path]
 
-        window_facet = ids.Entity(name="IFCWINDOW")
+        window_facet = ids.Entity(name="IFCFURNISHINGELEMENT")
         window_select = SelectFacet()
         window_select.applicability = [window_facet]
         window_select.list_ifc_path = [self.ifc_path]
 
         intersection_rule = Intersection(window_select, wall_select, 0.01) 
-        try:
-            intersection_rule.run()
-            self.assertGreaterEqual(len(intersection_rule.result), 0)#@todo create a real test
-            for result in intersection_rule.result:
-                self.assertIsInstance(result, intersection_rule.ClashResultTwoObjects)
-        except UnboundLocalError as e:
-            self.skipTest(f"Intersection rule skipped due to UnboundLocalError: {e}")
-        except Exception as e:
-            self.fail(f"Intersection rule failed with error: {e}")
+
+        OneRuleFile.contains=[intersection_rule]
+        OneRuleFile.run()
+
+ 
+        self.assertEqual(len(intersection_rule.result), 1)
+        for result in intersection_rule.result:
+            self.assertIsInstance(result, ClashResultTwoObjects)
+
+    def test_collision_rule(self):
+        """Test Intersection rule"""
+
+        OneRuleFile = RuleFile()
+        OneRuleFile.list_ifc_path= [self.ifc_path]
+        wall_facet = ids.Entity(name="IFCWALLSTANDARDCASE")
+        wall_select = SelectFacet()
+        wall_select.applicability = [wall_facet]
+        wall_select.list_ifc_path = [self.ifc_path]
+
+        window_facet = ids.Entity(name="IFCFURNISHINGELEMENT")
+        window_select = SelectFacet()
+        window_select.applicability = [window_facet]
+        window_select.list_ifc_path = [self.ifc_path]
+
+        intersection_rule = Collision(window_select, wall_select, 0.01) 
+
+        OneRuleFile.contains=[intersection_rule]
+        OneRuleFile.run()
+
+ 
+        self.assertEqual(len(intersection_rule.result), 1)
+        for result in intersection_rule.result:
+            self.assertIsInstance(result, ClashResultTwoObjects)
+
+    def test_clearance_rule(self):
+        """Test Intersection rule"""
+
+        OneRuleFile = RuleFile()
+        OneRuleFile.list_ifc_path= [self.ifc_path]
+        wall_facet = ids.Entity(name="IFCWALLSTANDARDCASE")
+        wall_select = SelectFacet()
+        wall_select.applicability = [wall_facet]
+        wall_select.list_ifc_path = [self.ifc_path]
+
+        window_facet = ids.Entity(name="IFCFURNISHINGELEMENT")
+        window_select = SelectFacet()
+        window_select.applicability = [window_facet]
+        window_select.list_ifc_path = [self.ifc_path]
+
+        intersection_rule = Clearance(window_select, wall_select, 1) 
+
+        OneRuleFile.contains=[intersection_rule]
+        OneRuleFile.run()
+
+ 
+        self.assertEqual(len(intersection_rule.result), 1)
+        for result in intersection_rule.result:
+            self.assertIsInstance(result, ClashResultTwoObjects)
+
+
+
+
+
 
     def test_above_rule(self):
         """Test Above rule"""
+
+        OneRuleFile = RuleFile()
+        OneRuleFile.list_ifc_path= [self.ifc_path]
         wall_facet = ids.Entity(name="IFCWALLSTANDARDCASE")
         wall_select = SelectFacet()
         wall_select.applicability = [wall_facet]
@@ -101,7 +175,7 @@ class TestRules(unittest.TestCase):
         above_rule = Above(source=wall_select, target=window_select, tolerance=1, above_type="Above_MaxToMax")
         above_rule.run()
 
-        self.assertGreaterEqual(len(above_rule.result), 0)#@todo create a real test
+        self.assertGreaterEqual(len(above_rule.result), 0)
         for result in above_rule.result:
             self.assertIsInstance(result, above_rule.ClashResultTwoObjects)
 

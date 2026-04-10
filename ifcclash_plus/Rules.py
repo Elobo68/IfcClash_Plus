@@ -50,9 +50,10 @@ class Volume(RuleCheckOneObject):
                     if self.volume_min < volume < self.volume_max:
                         result = ClashResultOneObject(source=entity, state=True)
                         self.result.append(result)
-                    else:
-                        result = ClashResultOneObject(source=entity, state=False)
-                        self.result.append(result)
+                    else: #@todo How do deal with failed OneRule ?
+                        ...
+                        #result = ClashResultOneObject(source=entity, state=False)
+                        #self.result.append(result)
                     if not iterator.next():
                         break
 
@@ -60,7 +61,6 @@ class Volume(RuleCheckOneObject):
             self.manage_result()
         else:
             self.produce_select()
-
 
 class Area(RuleCheckOneObject):
     from ifcopenshell.util.shape import get_area
@@ -94,9 +94,10 @@ class Area(RuleCheckOneObject):
                     if self.volume_min < area < self.volume_max:
                         result = ClashResultOneObject(source=entity, state=True)
                         self.result.append(result)
-                    else:
-                        result = ClashResultOneObject(source=entity, state=False)
-                        self.result.append(result)
+                    else: #@todo How do deal with failed OneRule ?
+                        ...
+                        #result = ClashResultOneObject(source=entity, state=False)
+                        #self.result.append(result)
                     if not iterator.next():
                         break
 
@@ -104,7 +105,6 @@ class Area(RuleCheckOneObject):
             self.manage_result()
         else:
             self.produce_select()
-
 
 class TopSurface(RuleCheckOneObject):
     def __init__(self, source, surface_min, surface_max):
@@ -116,6 +116,214 @@ class TopSurface(RuleCheckOneObject):
         self.geom_settings = ifcopenshell.geom.settings()
 
     def run(self, state="Final", top_or_bot="top"):
+        if top_or_bot == "top":
+            direction = (0.0, 0.0, 1)
+        if top_or_bot == "bot":
+            direction = (0.0, 0.0, -1)
+
+        self.tree = ifcopenshell.geom.tree()
+        self.select_source.run()
+
+        for ifc_file in self.select_source.dict_elements.keys():
+            iterator = ifcopenshell.geom.iterator(
+                self.geom_settings,
+                ifc_file,
+                multiprocessing.cpu_count(),
+                include=self.select_source.dict_elements[ifc_file],
+            )
+
+            if iterator.initialize():
+                while True:
+                    shape = iterator.get()
+                    geom = shape.geometry
+                    entity = ifc_file.by_id(shape.id)
+                    vertices = get_vertices(geom)
+                    faces = get_extreme_faces(geometry=geom, direction=direction)
+                    polygons = [shapely.Polygon(vertices[face]) for face in faces]
+                    unioned_polygon = shapely.ops.unary_union(polygons)
+
+                    if self.surface_min < unioned_polygon.area < self.surface_max:
+                        result = ClashResultOneObject(source=entity, state=True)
+                        self.result.append(result)
+                    else:#@todo How do deal with failed OneRule ?
+                        ...
+                        #result = ClashResultOneObject(source=entity, state=False)
+                        #self.result.append(result)
+
+                    if not iterator.next():
+                        break
+
+        if state == "Final":
+            self.manage_result()
+        else:
+            self.produce_select()
+
+class BottomSurface(RuleCheckOneObject):
+    def __init__(self, source, surface_min, surface_max):
+        super().__init__(source)
+        self.type = "Volume"
+        self.surface_max: float = surface_max
+        self.surface_min: float = surface_min
+        self.select_source = source
+        self.geom_settings = ifcopenshell.geom.settings()
+
+    def run(self, state="Final", top_or_bot="top"):#@todo Modify the rule
+        print("TODO")
+        if top_or_bot == "top":
+            direction = (0.0, 0.0, 1)
+        if top_or_bot == "bot":
+            direction = (0.0, 0.0, -1)
+
+        self.tree = ifcopenshell.geom.tree()
+        self.select_source.run()
+
+        for ifc_file in self.select_source.dict_elements.keys():
+            iterator = ifcopenshell.geom.iterator(
+                self.geom_settings,
+                ifc_file,
+                multiprocessing.cpu_count(),
+                include=self.select_source.dict_elements[ifc_file],
+            )
+
+            if iterator.initialize():
+                while True:
+                    shape = iterator.get()
+                    geom = shape.geometry
+                    entity = ifc_file.by_id(geom.id)
+                    vertices = get_vertices(geom)
+                    faces = get_extreme_faces(geometry=geom, direction=direction)
+                    polygons = [shapely.Polygon(vertices[face]) for face in faces]
+                    unioned_polygon = shapely.ops.unary_union(polygons)
+
+                    if self.surface_min < unioned_polygon.area < self.surface_max:
+                        result = ClashResultOneObject(source=entity, state=True)
+                        self.result.append(result)
+                    else:
+                        result = ClashResultOneObject(source=entity, state=False)
+                        self.result.append(result)
+
+                    if not iterator.next():
+                        break
+
+        if state == "Final":
+            self.manage_result()
+        else:
+            self.produce_select()
+
+class LateralSurface(RuleCheckOneObject):
+    def __init__(self, source, surface_min, surface_max):
+        super().__init__(source)
+        self.type = "Volume"
+        self.surface_max: float = surface_max
+        self.surface_min: float = surface_min
+        self.select_source = source
+        self.geom_settings = ifcopenshell.geom.settings()
+
+    def run(self, state="Final", top_or_bot="top"):#@todo Modify the rule
+        print("TODO")
+        if top_or_bot == "top":
+            direction = (0.0, 0.0, 1)
+        if top_or_bot == "bot":
+            direction = (0.0, 0.0, -1)
+
+        self.tree = ifcopenshell.geom.tree()
+        self.select_source.run()
+
+        for ifc_file in self.select_source.dict_elements.keys():
+            iterator = ifcopenshell.geom.iterator(
+                self.geom_settings,
+                ifc_file,
+                multiprocessing.cpu_count(),
+                include=self.select_source.dict_elements[ifc_file],
+            )
+
+            if iterator.initialize():
+                while True:
+                    shape = iterator.get()
+                    geom = shape.geometry
+                    entity = ifc_file.by_id(geom.id)
+                    vertices = get_vertices(geom)
+                    faces = get_extreme_faces(geometry=geom, direction=direction)
+                    polygons = [shapely.Polygon(vertices[face]) for face in faces]
+                    unioned_polygon = shapely.ops.unary_union(polygons)
+
+                    if self.surface_min < unioned_polygon.area < self.surface_max:
+                        result = ClashResultOneObject(source=entity, state=True)
+                        self.result.append(result)
+                    else:
+                        result = ClashResultOneObject(source=entity, state=False)
+                        self.result.append(result)
+
+                    if not iterator.next():
+                        break
+
+        if state == "Final":
+            self.manage_result()
+        else:
+            self.produce_select()
+
+class ProjectedSurface(RuleCheckOneObject):
+    def __init__(self, source, surface_min, surface_max):
+        super().__init__(source)
+        self.type = "Volume"
+        self.surface_max: float = surface_max
+        self.surface_min: float = surface_min
+        self.select_source = source
+        self.geom_settings = ifcopenshell.geom.settings()
+
+    def run(self, state="Final", top_or_bot="top"):#@todo Modify the rule
+        print("TODO")
+        if top_or_bot == "top":
+            direction = (0.0, 0.0, 1)
+        if top_or_bot == "bot":
+            direction = (0.0, 0.0, -1)
+
+        self.tree = ifcopenshell.geom.tree()
+        self.select_source.run()
+
+        for ifc_file in self.select_source.dict_elements.keys():
+            iterator = ifcopenshell.geom.iterator(
+                self.geom_settings,
+                ifc_file,
+                multiprocessing.cpu_count(),
+                include=self.select_source.dict_elements[ifc_file],
+            )
+
+            if iterator.initialize():
+                while True:
+                    shape = iterator.get()
+                    geom = shape.geometry
+                    entity = ifc_file.by_id(geom.id)
+                    vertices = get_vertices(geom)
+                    faces = get_extreme_faces(geometry=geom, direction=direction)
+                    polygons = [shapely.Polygon(vertices[face]) for face in faces]
+                    unioned_polygon = shapely.ops.unary_union(polygons)
+
+                    if self.surface_min < unioned_polygon.area < self.surface_max:
+                        result = ClashResultOneObject(source=entity, state=True)
+                        self.result.append(result)
+                    else:
+                        result = ClashResultOneObject(source=entity, state=False)
+                        self.result.append(result)
+
+                    if not iterator.next():
+                        break
+
+        if state == "Final":
+            self.manage_result()
+        else:
+            self.produce_select()
+
+class Orientation(RuleCheckOneObject):
+    def __init__(self, source, orientation):
+        super().__init__(source)
+        self.type = "Volume"
+        self.orientation: float = orientation
+        self.select_source = source
+        self.geom_settings = ifcopenshell.geom.settings()
+
+    def run(self, state="Final", top_or_bot="top"):#@todo Modify the rule
+        print("TODO")
         if top_or_bot == "top":
             direction = (0.0, 0.0, 1)
         if top_or_bot == "bot":
