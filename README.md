@@ -93,7 +93,6 @@ There is a sheet for every rule, that present the rule, the parameters and the e
 * [Volume](doc/1ObjectsRules/Volume) ----------------Rule:OK Doc:KO test:OK
 * [Area](doc/1ObjectsRules/Area) ---------------------Rule:OK Doc:KO test:OK
 * [Top Surface](doc/1ObjectsRules/TopSurface) ----------Rule:OK Doc:KO test:OK
-* [Bottom Surface](doc/1ObjectsRules/BottomSurface) ----Rule:OK Doc:KO test:KO
 * [Lateral Surface](doc/1ObjectsRules/LateralSurface) -----Rule:OK Doc:KO test:KO
 * [Projected Surface](doc/1ObjectsRules/ProjectedSurface) -Rule:OK Doc:KO test:KO
 * [Orientation](doc/1ObjectsRules/Orientation)-----------Rule:OK Doc:KO test:OK

@@ -141,7 +141,8 @@ class TopOrBottomSurface(RuleCheckOneObject):
                     shape = iterator.get()
                     geom = shape.geometry
                     entity = ifc_file.by_id(shape.id)
-                    area = ifcopenshell.util.shape.get_side_area(geom, direction=direction, angle=45)
+                    area= clash_utils.get_extreme_faces(shape,direction=direction)
+                    #area = ifcopenshell.util.shape.get_side_area(geom, direction=direction, angle=45)
  
                     if self.surface_min < area < self.surface_max:
                         result = ClashResultOneObject(source=entity, state=True)
