@@ -5,10 +5,12 @@ import unittest
 import ifcopenshell
 import sys
 sys.path.insert(0, './ifcclash_plus')
-from Rules import Volume, Area, TopSurface, Intersection, Above, OBB_Above,Clearance,Collision,OBB_Below,Orientation
-from RuleClass import SelectFacet,RuleFile,ClashResultOneObject,ClashResultTwoObjects
+from Rules import Volume, Area,Orientation,TopOrBottomSurface,LateralSurface,ProjectedSurface
+from RuleClass import SelectFacet,RuleFile,ClashResultOneObject
 from ifctester import ids
 
+import ifcopenshell.geom.main
+import ifcopenshell.util.shape
 
 class TestRules(unittest.TestCase):
     """
@@ -69,7 +71,64 @@ class TestRules(unittest.TestCase):
         first_select = SelectFacet()
         first_select.applicability = [first_facet]
 
-        top_surface_rule = TopSurface(first_select, 1, 2)
+        top_surface_rule = TopOrBottomSurface(first_select, 1, 2,"Top")
+
+        OneRuleFile.contains=[top_surface_rule]
+        OneRuleFile.run()
+
+        self.assertEqual(len(top_surface_rule.result), 4) 
+        for result in top_surface_rule.result:
+            self.assertIsInstance(result, ClashResultOneObject)
+
+    def test_bottom_surface_rule(self):
+        """Test bottom rule"""
+        OneRuleFile = RuleFile()
+        OneRuleFile.list_ifc_path= [self.ifc_path]
+
+        first_facet = ids.Entity(name="IFCFURNISHINGELEMENT")
+        first_select = SelectFacet()
+        first_select.applicability = [first_facet]
+
+        top_surface_rule = TopOrBottomSurface(first_select, 1, 2,"Bottom")
+
+        OneRuleFile.contains=[top_surface_rule]
+        OneRuleFile.run()
+
+        self.assertEqual(len(top_surface_rule.result), 4) 
+        for result in top_surface_rule.result:
+            self.assertIsInstance(result, ClashResultOneObject)
+
+    def test_lateral_rule(self):
+        """Test TopSurface rule"""
+        OneRuleFile = RuleFile()
+        OneRuleFile.list_ifc_path= [self.ifc_path]
+
+        first_facet = ids.Entity(name="IFCFURNISHINGELEMENT")
+        first_select = SelectFacet()
+        first_select.applicability = [first_facet]
+
+
+        direction=(0.0,0.0,1.0)
+        top_surface_rule = LateralSurface(first_select, 1, 2,direction)
+
+        OneRuleFile.contains=[top_surface_rule]
+        OneRuleFile.run()
+
+        self.assertEqual(len(top_surface_rule.result), 4) 
+        for result in top_surface_rule.result:
+            self.assertIsInstance(result, ClashResultOneObject)
+
+    def test_projected_rule(self):
+        """Test TopSurface rule"""
+        OneRuleFile = RuleFile()
+        OneRuleFile.list_ifc_path= [self.ifc_path]
+
+        first_facet = ids.Entity(name="IFCFURNISHINGELEMENT")
+        first_select = SelectFacet()
+        first_select.applicability = [first_facet]
+
+        direction=(0.0,0.0,1.0)
+        top_surface_rule = ProjectedSurface(first_select, 1, 2,direction)
 
         OneRuleFile.contains=[top_surface_rule]
         OneRuleFile.run()

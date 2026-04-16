@@ -18,7 +18,7 @@ from CustomOBB import create_obb_from_TopoDs_Shape_via_pca,create_obb_with_free_
 from OCC.Core.BRepExtrema import BRepExtrema_DistShapeShape
 import ifcopenshell.util.placement
 from OCC.Core.gp import gp_Ax3, gp_Pnt, gp_Dir, gp_Trsf, gp_XYZ, gp_Vec
-
+import ifcopenshell.util.shape
 
 
 DIRECTION_METHOD = Literal["Wide", "Narrow"]
@@ -109,18 +109,20 @@ class Area(RuleCheckOneObject):
         else:
             self.produce_select()
 
-class TopSurface(RuleCheckOneObject):
-    def __init__(self, source, surface_min, surface_max):
+TOP_OR_BOT = Literal["Top", "Bottom"]
+class TopOrBottomSurface(RuleCheckOneObject):
+    def __init__(self, source, surface_min, surface_max,top_or_bot:TOP_OR_BOT):
         super().__init__(source)
-        self.type = "TopSurface"
+        self.type = top_or_bot+"Surface"
         self.surface_max: float = surface_max
         self.surface_min: float = surface_min
+        self.top_or_bot_method:TOP_OR_BOT = top_or_bot
         self.geom_settings = ifcopenshell.geom.settings()
 
-    def run(self, state="Final", top_or_bot="top"):
-        if top_or_bot == "top":
+    def run(self, state="Final"):
+        if self.top_or_bot_method == "Top":
             direction = (0.0, 0.0, 1)
-        if top_or_bot == "bot":
+        if self.top_or_bot_method == "Bottom":
             direction = (0.0, 0.0, -1)
 
         self.tree = ifcopenshell.geom.tree()
@@ -139,12 +141,9 @@ class TopSurface(RuleCheckOneObject):
                     shape = iterator.get()
                     geom = shape.geometry
                     entity = ifc_file.by_id(shape.id)
-                    vertices = get_vertices(geom)
-                    faces = clash_utils.get_extreme_faces(geometry=geom, direction=direction)
-                    polygons = [shapely.Polygon(vertices[face]) for face in faces]
-                    unioned_polygon = shapely.ops.unary_union(polygons)
-
-                    if self.surface_min < unioned_polygon.area < self.surface_max:
+                    area = ifcopenshell.util.shape.get_side_area(geom, direction=direction, angle=45)
+ 
+                    if self.surface_min < area < self.surface_max:
                         result = ClashResultOneObject(source=entity, state=True)
                         self.result.append(result)
                     else:#@todo How do deal with failed OneRule ?
@@ -160,71 +159,16 @@ class TopSurface(RuleCheckOneObject):
         else:
             self.produce_select()
 
-class BottomSurface(RuleCheckOneObject):
-    def __init__(self, source, surface_min, surface_max):
-        super().__init__(source)
-        self.type = "BottomSurface"
-        self.surface_max: float = surface_max
-        self.surface_min: float = surface_min
-        self.geom_settings = ifcopenshell.geom.settings()
-
-    def run(self, state="Final", top_or_bot="top"):#@todo Modify the rule
-        print("TODO")
-        if top_or_bot == "top":
-            direction = (0.0, 0.0, 1)
-        if top_or_bot == "bot":
-            direction = (0.0, 0.0, -1)
-
-        self.tree = ifcopenshell.geom.tree()
-        self.select_source.run()
-
-        for ifc_file in self.select_source.dict_elements.keys():
-            iterator = ifcopenshell.geom.iterator(
-                self.geom_settings,
-                ifc_file,
-                multiprocessing.cpu_count(),
-                include=self.select_source.dict_elements[ifc_file],
-            )
-
-            if iterator.initialize():
-                while True:
-                    shape = iterator.get()
-                    geom = shape.geometry
-                    entity = ifc_file.by_id(geom.id)
-                    vertices = get_vertices(geom)
-                    faces = get_extreme_faces(geometry=geom, direction=direction)
-                    polygons = [shapely.Polygon(vertices[face]) for face in faces]
-                    unioned_polygon = shapely.ops.unary_union(polygons)
-
-                    if self.surface_min < unioned_polygon.area < self.surface_max:
-                        result = ClashResultOneObject(source=entity, state=True)
-                        self.result.append(result)
-                    else:
-                        result = ClashResultOneObject(source=entity, state=False)
-                        self.result.append(result)
-
-                    if not iterator.next():
-                        break
-
-        if state == "Final":
-            self.manage_result()
-        else:
-            self.produce_select()
-
 class LateralSurface(RuleCheckOneObject):
-    def __init__(self, source, surface_min, surface_max):
+    def __init__(self, source, surface_min, surface_max,direction):
         super().__init__(source)
         self.type = "LateralSurface"
         self.surface_max: float = surface_max
         self.surface_min: float = surface_min
+        self.direction: float = direction
         self.geom_settings = ifcopenshell.geom.settings()
 
-    def run(self, state="Final", top_or_bot="top"):#@todo Modify the rule
-        print("TODO")
-        if top_or_bot == "top":
-            direction = (0.0, 0.0, 1)
-        if top_or_bot == "bot":
-            direction = (0.0, 0.0, -1)
+    def run(self, state="Final"):#@todo Modify the rule
 
         self.tree = ifcopenshell.geom.tree()
         self.select_source.run()
@@ -241,13 +185,10 @@ class LateralSurface(RuleCheckOneObject):
                 while True:
                     shape = iterator.get()
                     geom = shape.geometry
-                    entity = ifc_file.by_id(geom.id)
-                    vertices = get_vertices(geom)
-                    faces = get_extreme_faces(geometry=geom, direction=direction)
-                    polygons = [shapely.Polygon(vertices[face]) for face in faces]
-                    unioned_polygon = shapely.ops.unary_union(polygons)
+                    entity = ifc_file.by_id(shape.id)
+                    area = ifcopenshell.util.shape.get_side_area(geom, direction=self.direction, angle=45)
 
-                    if self.surface_min < unioned_polygon.area < self.surface_max:
+                    if self.surface_min < area < self.surface_max:
                         result = ClashResultOneObject(source=entity, state=True)
                         self.result.append(result)
                     else:
@@ -263,19 +204,15 @@ class LateralSurface(RuleCheckOneObject):
             self.produce_select()
 
 class ProjectedSurface(RuleCheckOneObject):
-    def __init__(self, source, surface_min, surface_max):
+    def __init__(self, source, surface_min, surface_max,direction):
         super().__init__(source)
-        self.type = "ProjectedSurface"
+        self.type = "Projected"
         self.surface_max: float = surface_max
         self.surface_min: float = surface_min
+        self.direction: float = direction
         self.geom_settings = ifcopenshell.geom.settings()
 
-    def run(self, state="Final", top_or_bot="top"):#@todo Modify the rule
-        print("TODO")
-        if top_or_bot == "top":
-            direction = (0.0, 0.0, 1)
-        if top_or_bot == "bot":
-            direction = (0.0, 0.0, -1)
+    def run(self, state="Final"):#@todo Modify the rule
 
         self.tree = ifcopenshell.geom.tree()
         self.select_source.run()
@@ -292,13 +229,10 @@ class ProjectedSurface(RuleCheckOneObject):
                 while True:
                     shape = iterator.get()
                     geom = shape.geometry
-                    entity = ifc_file.by_id(geom.id)
-                    vertices = get_vertices(geom)
-                    faces = get_extreme_faces(geometry=geom, direction=direction)
-                    polygons = [shapely.Polygon(vertices[face]) for face in faces]
-                    unioned_polygon = shapely.ops.unary_union(polygons)
+                    entity = ifc_file.by_id(shape.id)
+                    area = ifcopenshell.util.shape.get_footprint_area(geom, direction=self.direction)
 
-                    if self.surface_min < unioned_polygon.area < self.surface_max:
+                    if self.surface_min < area < self.surface_max:
                         result = ClashResultOneObject(source=entity, state=True)
                         self.result.append(result)
                     else:
@@ -312,7 +246,6 @@ class ProjectedSurface(RuleCheckOneObject):
             self.manage_result()
         else:
             self.produce_select()
-
 
 ORIENTATION_TYPE = Literal["Parrallel", "Perpendicular"]
 

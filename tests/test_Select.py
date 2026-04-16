@@ -366,7 +366,7 @@ class TestSelectFacetAndSelectRuleIntegration(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures."""
         self.test_ifc_path = self._create_temp_ifc()
-        #@todo check those test
+        #@todo check those test it's AI made without looking
         print("TO TEST")
 
     def tearDown(self):
