@@ -90,43 +90,43 @@ There is a sheet for every rule, that present the rule, the parameters and the e
 
 
 ## One Object Rule
-* [Volume](doc/1ObjectsRules/Volume) Rule:OK Doc:Nok test:Ok
-* [Area](doc/1ObjectsRules/Area) Rule:Ok Doc:Nok test:Ok
-* [Top Surface](doc/1ObjectsRules/TopSurface) Rule:Ok Doc:Nok test:Ok
-* [Bottom Surface](doc/1ObjectsRules/BottomSurface) Rule:NOK Doc:Nok test:Nok
-* [Lateral Surface](doc/1ObjectsRules/LateralSurface) Rule:NOK Doc:Nok test:Nok
-* [Projected Surface](doc/1ObjectsRules/ProjectedSurface) Rule:NOK Doc:Nok test:Nok
-* [Orientation](doc/1ObjectsRules/Orientation) Rule:NOK Doc:Nok test:Nok
+* [Volume](doc/1ObjectsRules/Volume) ----------------Rule:OK Doc:KO test:OK
+* [Area](doc/1ObjectsRules/Area) ---------------------Rule:OK Doc:KO test:OK
+* [Top Surface](doc/1ObjectsRules/TopSurface) ----------Rule:OK Doc:KO test:OK
+* [Bottom Surface](doc/1ObjectsRules/BottomSurface) ----Rule:OK Doc:KO test:KO
+* [Lateral Surface](doc/1ObjectsRules/LateralSurface) -----Rule:OK Doc:KO test:KO
+* [Projected Surface](doc/1ObjectsRules/ProjectedSurface) -Rule:OK Doc:KO test:KO
+* [Orientation](doc/1ObjectsRules/Orientation)-----------Rule:OK Doc:KO test:OK
 
 ## Two Object Rule
 
 ### Historic IfcClash Rule
-* [Clearance](doc/2ObjectsRules/Clearance) Rule:Ok Doc:Nok test:Ok
-* [Intersection](doc/2ObjectsRules/Intersection) Rule:Ok Doc:Nok test:Ok
-* [Collision](doc/2ObjectsRules/Collision) Rule:Ok Doc:Nok test:Ok
+* [Clearance](doc/2ObjectsRules/Clearance)------Rule:OK Doc:KO test:OK
+* [Intersection](doc/2ObjectsRules/Intersection)-- Rule:OK Doc:KO test:OK
+* [Collision](doc/2ObjectsRules/Collision)--------Rule:OK Doc:KO test:OK
 
 ### Advance Clearance Rule
-* [Clearance Above Object](doc/2ObjectsRules/ClearanceAbove.md) Rule:OK Doc:Nok test:Nok
-* [Clearance Next To Object](doc/2ObjectsRules/ClearanceNextTo) Rule:NOK Doc:Nok test:Nok
-* [Clearance Below Object](doc/2ObjectsRules/ClearanceBelow) Rule:NOK Doc:Nok test:Nok
+* [Clearance Above Object](doc/2ObjectsRules/ClearanceAbove.md)------Rule:OK Doc:KO test:KO
+* [Clearance Next To Object](doc/2ObjectsRules/ClearanceNextTo)----Rule:KO Doc:KO test:KO
+* [Clearance Below Object](doc/2ObjectsRules/ClearanceBelow)------Rule:KO Doc:KO test:KO
 
 ### Clearance with OBB
-* [OBB Above](doc/2ObjectsRules/OBB_Above) Rule:Ok Doc:Nok test:Ok
-* [OBB Below](doc/2ObjectsRules/OBB_Below) Rule:Ok Doc:Nok test:Partial
-* [OBB Front And Back](doc/2ObjectsRules/OBB_Front_And_Back) Rule:NOK Doc:Nok test:Nok
+* [OBB Above](doc/2ObjectsRules/OBB_Above)----------------Rule:OK Doc:KO test:OK
+* [OBB Below](doc/2ObjectsRules/OBB_Below)----------------Rule:OK Doc:KO test:Partial
+* [OBB Front And Back](doc/2ObjectsRules/OBB_Front_And_Back)--Rule:KO Doc:KO test:KO
 
 ### Other type of rule
-* [Surface Recover](doc/2ObjectsRules/SurfaceRecover) Rule:NOK Doc:Nok test:Nok
-* [Angle Between](doc/2ObjectsRules/AngleBetween) Rule:NOK Doc:Nok test:Nok
-* [Direct View](doc/2ObjectsRules/DirectView) Rule:NOK Doc:Nok test:Nok
-* [Face Check](doc/2ObjectsRules/FaceCheck) Rule:NOK Doc:Nok test:Nok
+* [Surface Recover](doc/2ObjectsRules/SurfaceRecover)---Rule:KO Doc:KO test:KO
+* [Angle Between](doc/2ObjectsRules/AngleBetween)----Rule:KO Doc:KO test:KO
+* [Direct View](doc/2ObjectsRules/DirectView)----------Rule:KO Doc:KO test:KO
+* [Face Check](doc/2ObjectsRules/FaceCheck)-----------Rule:KO Doc:KO test:KO
 
 
 ## Complex Rule
-* [Free Space in Room](doc/1ObjectsRules/Orientation) Rule:NOK Doc:Nok test:Nok
-* [Find Path](doc/ComplexRules/FindPath) Rule:NOK Doc:Nok test:Nok
-* [EvacuationDistance](doc/ComplexRules/EvacuationDistance) Rule:NOK Doc:Nok test:Nok
-* [Alignement](doc/ComplexRules/Alignement) Rule:NOK Doc:Nok test:Nok
+* [Free Space in Room](doc/1ObjectsRules/Orientation) Rule:KO Doc:KO test:KO
+* [Find Path](doc/ComplexRules/FindPath) Rule:KO Doc:KO test:KO
+* [EvacuationDistance](doc/ComplexRules/EvacuationDistance) Rule:NOK Doc:KO test:KO
+* [Alignement](doc/ComplexRules/Alignement) Rule:NOK Doc:KO test:KO
 
 
 # Todo List
