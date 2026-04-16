@@ -114,10 +114,14 @@ class SelectFacet(Select):
     def run(self):
         self.initialize_dict()
 
+        result=[]
         for onefile in self.list_ifc_file:
             for one_applicability in self.applicability:
                 if self.dict_elements[onefile] is None:
-                    result = one_applicability.filter(onefile)
+                    if isinstance(one_applicability,Attribute): #Attribute need to have a list where Entity doesn't need to
+                        result = one_applicability.filter(onefile,onefile.by_type("IfcProduct"))
+                    else:
+                        result = one_applicability.filter(onefile)
                     self.dict_elements[onefile] = result
                 else:
                     self.dict_elements[onefile] = one_applicability.filter(
@@ -719,7 +723,6 @@ class RuleCheckTwoObjects(RuleCheck):
         self._display_generic()
         self._display_specific()
         self._start_display()
-
 
 
 class RuleCheckComplex(RuleCheck):
