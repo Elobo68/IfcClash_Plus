@@ -171,7 +171,7 @@ class RuleCheck:
         self.id: str = None
         self.type: str = None
 
-        self.tree: list = None  # @todo Determine the exact position of this parameter
+        self.tree: list = None
 
         self.result: list[ClashResult] = []
 
