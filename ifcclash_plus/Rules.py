@@ -17,7 +17,11 @@ from typing import Literal
 from CustomOBB import create_obb_from_TopoDs_Shape_via_pca,create_obb_with_free_z,create_obb_with_fixed_z,create_obb_from_TopoDs_Shape
 from OCC.Core.BRepExtrema import BRepExtrema_DistShapeShape
 import ifcopenshell.util.placement
+from OCC.Core.gp import gp_Ax3, gp_Pnt, gp_Dir, gp_Trsf, gp_XYZ, gp_Vec
 
+
+
+DIRECTION_METHOD = Literal["Wide", "Narrow"]
 # ===========One Object Rule
 class Volume(RuleCheckOneObject):
     from ifcopenshell.util.shape import get_volume
@@ -67,10 +71,9 @@ class Area(RuleCheckOneObject):
 
     def __init__(self, source, volume_min, volume_max):
         super().__init__(source)
-        self.type = "Volume"
+        self.type = "Area"
         self.volume_max: float = volume_max
         self.volume_min: float = volume_min
-        self.select_source = source
         self.geom_settings = ifcopenshell.geom.settings()
 
     def run(self, state="Final"):
@@ -109,10 +112,9 @@ class Area(RuleCheckOneObject):
 class TopSurface(RuleCheckOneObject):
     def __init__(self, source, surface_min, surface_max):
         super().__init__(source)
-        self.type = "Volume"
+        self.type = "TopSurface"
         self.surface_max: float = surface_max
         self.surface_min: float = surface_min
-        self.select_source = source
         self.geom_settings = ifcopenshell.geom.settings()
 
     def run(self, state="Final", top_or_bot="top"):
@@ -161,10 +163,9 @@ class TopSurface(RuleCheckOneObject):
 class BottomSurface(RuleCheckOneObject):
     def __init__(self, source, surface_min, surface_max):
         super().__init__(source)
-        self.type = "Volume"
+        self.type = "BottomSurface"
         self.surface_max: float = surface_max
         self.surface_min: float = surface_min
-        self.select_source = source
         self.geom_settings = ifcopenshell.geom.settings()
 
     def run(self, state="Final", top_or_bot="top"):#@todo Modify the rule
@@ -213,10 +214,9 @@ class BottomSurface(RuleCheckOneObject):
 class LateralSurface(RuleCheckOneObject):
     def __init__(self, source, surface_min, surface_max):
         super().__init__(source)
-        self.type = "Volume"
+        self.type = "LateralSurface"
         self.surface_max: float = surface_max
         self.surface_min: float = surface_min
-        self.select_source = source
         self.geom_settings = ifcopenshell.geom.settings()
 
     def run(self, state="Final", top_or_bot="top"):#@todo Modify the rule
@@ -265,10 +265,9 @@ class LateralSurface(RuleCheckOneObject):
 class ProjectedSurface(RuleCheckOneObject):
     def __init__(self, source, surface_min, surface_max):
         super().__init__(source)
-        self.type = "Volume"
+        self.type = "ProjectedSurface"
         self.surface_max: float = surface_max
         self.surface_min: float = surface_min
-        self.select_source = source
         self.geom_settings = ifcopenshell.geom.settings()
 
     def run(self, state="Final", top_or_bot="top"):#@todo Modify the rule
@@ -314,23 +313,24 @@ class ProjectedSurface(RuleCheckOneObject):
         else:
             self.produce_select()
 
+
+ORIENTATION_TYPE = Literal["Parrallel", "Perpendicular"]
+
 class Orientation(RuleCheckOneObject):
-    def __init__(self, source, orientation):
+    def __init__(self, source, orientation,orientation_type:ORIENTATION_TYPE,direction_method:DIRECTION_METHOD):
         super().__init__(source)
-        self.type = "Volume"
-        self.orientation: float = orientation
-        self.select_source = source
+        self.type = "Orientation"
+        self.orientation: tuple[float,float,float] = orientation
+        self.orientation_type: ORIENTATION_TYPE = orientation_type
+        self.direction_method:DIRECTION_METHOD=direction_method
         self.geom_settings = ifcopenshell.geom.settings()
+        self.geom_settings.set(self.geom_settings.USE_PYTHON_OPENCASCADE, True)
 
-    def run(self, state="Final", top_or_bot="top"):#@todo Modify the rule
-        print("TODO")
-        if top_or_bot == "top":
-            direction = (0.0, 0.0, 1)
-        if top_or_bot == "bot":
-            direction = (0.0, 0.0, -1)
+    def run(self, state="Final"):#@todo Modify the rule
 
-        self.tree = ifcopenshell.geom.tree()
         self.select_source.run()
+
+        occ_orientation=gp_Dir(self.orientation[0],self.orientation[1],self.orientation[2])
 
         for ifc_file in self.select_source.dict_elements.keys():
             iterator = ifcopenshell.geom.iterator(
@@ -344,18 +344,14 @@ class Orientation(RuleCheckOneObject):
                 while True:
                     shape = iterator.get()
                     geom = shape.geometry
-                    entity = ifc_file.by_id(geom.id)
-                    vertices = get_vertices(geom)
-                    faces = get_extreme_faces(geometry=geom, direction=direction)
-                    polygons = [shapely.Polygon(vertices[face]) for face in faces]
-                    unioned_polygon = shapely.ops.unary_union(polygons)
+                    obb=create_obb_from_TopoDs_Shape(geom)
+                    dir1,dir2=obb.get_two_main_direction_OBB_shape(self.direction_method)
 
-                    if self.surface_min < unioned_polygon.area < self.surface_max:
-                        result = ClashResultOneObject(source=entity, state=True)
-                        self.result.append(result)
-                    else:
-                        result = ClashResultOneObject(source=entity, state=False)
-                        self.result.append(result)
+                    print(dir1.X(),dir1.Y(),dir1.Z())
+                    dot_result=dir1.DotCross(occ_orientation)
+
+                    print(dot_result)
+
 
                     if not iterator.next():
                         break
@@ -1259,8 +1255,7 @@ class OBB_Below(RuleCheckTwoObjects):
                         break
 
 
-DIRECTION_METHOD = Literal[
-    "Wide", "Narrow"]
+
 
 class OBB_Front_And_Back(RuleCheckTwoObjects):
     def __init__(self, source, target, tolerance,method:DIRECTION_METHOD):
