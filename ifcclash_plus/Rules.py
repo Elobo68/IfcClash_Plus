@@ -318,6 +318,7 @@ ORIENTATION_TYPE = Literal["Parrallel", "Perpendicular"]
 
 class Orientation(RuleCheckOneObject):
     def __init__(self, source, orientation,orientation_type:ORIENTATION_TYPE,direction_method:DIRECTION_METHOD):
+        #@todo We can set an East, North, etc orientation to check
         super().__init__(source)
         self.type = "Orientation"
         self.orientation: tuple[float,float,float] = orientation
@@ -326,7 +327,7 @@ class Orientation(RuleCheckOneObject):
         self.geom_settings = ifcopenshell.geom.settings()
         self.geom_settings.set(self.geom_settings.USE_PYTHON_OPENCASCADE, True)
 
-    def run(self, state="Final"):#@todo Modify the rule
+    def run(self, state="Final"):
 
         self.select_source.run()
 
@@ -344,14 +345,24 @@ class Orientation(RuleCheckOneObject):
                 while True:
                     shape = iterator.get()
                     geom = shape.geometry
+                    entity = ifc_file.by_id(shape.data.id)
                     obb=create_obb_from_TopoDs_Shape(geom)
                     dir1,dir2=obb.get_two_main_direction_OBB_shape(self.direction_method)
 
-                    print(dir1.X(),dir1.Y(),dir1.Z())
-                    dot_result=dir1.DotCross(occ_orientation)
+                    is_parrallel=occ_orientation.IsParallel(dir1,0.1)
 
-                    print(dot_result)
 
+                    if self.direction_method=="Parrallel":
+                        check_direction=is_parrallel
+                    elif self.direction_method=="Perpendicular":
+                        check_direction=not is_parrallel
+
+                    if check_direction:
+                        result = ClashResultOneObject(source=entity, state=True)
+                        self.result.append(result)
+                    else:
+                        result = ClashResultOneObject(source=entity, state=False)
+                        self.result.append(result)
 
                     if not iterator.next():
                         break
