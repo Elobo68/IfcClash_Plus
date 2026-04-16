@@ -145,6 +145,7 @@ class TestRules(unittest.TestCase):
         for result in obb_above_rule.result:
             self.assertIsInstance(result, ClashResultTwoObjects)
 
+
     def test_obb_below_rule(self):
         """Test OBB_Below rule"""
 
@@ -170,7 +171,31 @@ class TestRules(unittest.TestCase):
             self.assertIsInstance(result, ClashResultTwoObjects)
 
     def test_obb_below_rule_2(self):
-        """Test OBB_Below rule"""
+        """Test OBB_Below rule. It's the inverse of OBB Above, to cross check"""
+
+        OneRuleFile = RuleFile()
+        OneRuleFile.list_ifc_path= [self.ifc_path]
+
+        first_facet = ids.Entity(name="IfcSLab")
+        first_select = SelectFacet()
+        first_select.applicability = [first_facet]
+
+        second_facet = ids.Entity(name="IFCFURNISHINGELEMENT")
+        second_select = SelectFacet()
+        second_select.applicability = [second_facet]
+
+        obb_above_rule = OBB_Below(first_select, second_select, 0.81)
+        
+        OneRuleFile.contains=[obb_above_rule]
+        OneRuleFile.run()
+
+        self.assertEqual(len(obb_above_rule.result), 8)
+        #We should find the same number as the above test rule. 
+        for result in obb_above_rule.result:
+            self.assertIsInstance(result, ClashResultTwoObjects)
+
+    def test_obb_above_rule_2(self):
+        """Test OBB_above rule, it's the inverse of OBB_Below, to cross check"""
 
         OneRuleFile = RuleFile()
         OneRuleFile.list_ifc_path= [self.ifc_path]
@@ -179,17 +204,17 @@ class TestRules(unittest.TestCase):
         first_select = SelectFacet()
         first_select.applicability = [first_facet]
 
-        second_facet = ids.Entity(name="IFCFURNISHINGELEMENT")
+        second_facet = ids.Entity(name="IfcWindow")
         second_select = SelectFacet()
         second_select.applicability = [second_facet]
 
-        obb_above_rule = OBB_Below(first_select, second_select, 1.05)
+        obb_above_rule = OBB_Above(first_select, second_select, 0.1)
         
         OneRuleFile.contains=[obb_above_rule]
         OneRuleFile.run()
 
-        self.assertEqual(len(obb_above_rule.result), 9)
-        #We should find the same number ass the above test rule. 
+        self.assertEqual(len(obb_above_rule.result), 34)
+        #We should find the same number as the above test rule. 
         for result in obb_above_rule.result:
             self.assertIsInstance(result, ClashResultTwoObjects)
 

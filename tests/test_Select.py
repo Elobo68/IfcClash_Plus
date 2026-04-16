@@ -35,6 +35,8 @@ class TestSelectFacetBasic(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures with a minimal IFC file."""
         self.test_ifc_path = self._create_temp_ifc()
+        #@todo check those test
+        print("TO TEST")
 
     def tearDown(self):
         """Clean up test fixtures."""
@@ -225,6 +227,8 @@ class TestSelectRuleBasic(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures."""
         self.test_ifc_path = self._create_temp_ifc()
+        #@todo check those test
+        print("TO TEST")
 
     def tearDown(self):
         """Clean up test fixtures."""
@@ -362,6 +366,8 @@ class TestSelectFacetAndSelectRuleIntegration(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures."""
         self.test_ifc_path = self._create_temp_ifc()
+        #@todo check those test
+        print("TO TEST")
 
     def tearDown(self):
         """Clean up test fixtures."""
