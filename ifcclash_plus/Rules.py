@@ -251,13 +251,14 @@ class ProjectedSurface(RuleCheckOneObject):
 ORIENTATION_TYPE = Literal["Parrallel", "Perpendicular"]
 
 class Orientation(RuleCheckOneObject):
-    def __init__(self, source, orientation,orientation_type:ORIENTATION_TYPE,direction_method:DIRECTION_METHOD):
+    def __init__(self, source, orientation,orientation_type:ORIENTATION_TYPE,direction_method:DIRECTION_METHOD,angular_tolerance:float=0.1):
         #@todo We can set an East, North, etc orientation to check
         super().__init__(source)
         self.type = "Orientation"
         self.orientation: tuple[float,float,float] = orientation
         self.orientation_type: ORIENTATION_TYPE = orientation_type
         self.direction_method:DIRECTION_METHOD=direction_method
+        self.angular_tolerance:float =angular_tolerance
         self.geom_settings = ifcopenshell.geom.settings()
         self.geom_settings.set(self.geom_settings.USE_PYTHON_OPENCASCADE, True)
 
@@ -283,7 +284,7 @@ class Orientation(RuleCheckOneObject):
                     obb=create_obb_from_TopoDs_Shape(geom)
                     dir1,dir2=obb.get_two_main_direction_OBB_shape(self.direction_method)
 
-                    is_parrallel=occ_orientation.IsParallel(dir1,0.1)
+                    is_parrallel=occ_orientation.IsParallel(dir1,self.angular_tolerance)
 
 
                     if self.direction_method=="Parrallel":

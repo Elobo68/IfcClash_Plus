@@ -148,8 +148,9 @@ class TestRules(unittest.TestCase):
 
 
         up_orientation=(1.0,1.0,0.0)
+        angular_tolerance=0.1
 
-        rule = Orientation(first_select, up_orientation,"narrow",'Parrallel')
+        rule = Orientation(first_select, up_orientation,"narrow",'Parrallel',angular_tolerance)
 
         OneRuleFile.contains=[rule]
         OneRuleFile.run()
