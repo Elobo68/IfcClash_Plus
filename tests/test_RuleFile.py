@@ -19,7 +19,6 @@ from Rules import (
     Intersection,
     Volume,
     Area,
-    TopSurface,
     OBB_Above,
     OBB_Below,
 )

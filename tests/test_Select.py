@@ -16,7 +16,7 @@ from ifcopenshell.api import run
 sys.path.insert(0, './ifcclash_plus')
 
 from RuleClass import SelectFacet, SelectRule, RuleFile
-from Rules import Select, Volume, Area, TopSurface
+from Rules import Select, Volume, Area
 from ifctester import ids
 from ifctester.facet import (
     Facet,

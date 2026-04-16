@@ -308,7 +308,108 @@ class Orientation(RuleCheckOneObject):
             self.produce_select()
 
 
-# ====== Two Objects Rule
+# ===== Two Objects Rule
+
+class AngleBetween(RuleCheckTwoObjects):
+    def __init__(self, source, target, direction_method_for_source:DIRECTION_METHOD,direction_method_for_target:DIRECTION_METHOD, angle_difference:float, angle_tolerance:float):
+        super().__init__(source, target)
+        self.type = "AngleBetween"
+        self.direction_method_for_source: DIRECTION_METHOD = direction_method_for_source
+        self.direction_method_for_target: DIRECTION_METHOD = direction_method_for_target
+        self.angle_difference: float = angle_difference
+        self.angle_tolerance: float = angle_tolerance
+        self.geom_settings = ifcopenshell.geom.settings()
+        self.geom_settings.set(self.geom_settings.USE_PYTHON_OPENCASCADE, True)
+
+    def _get_object_main_direction(self, geom,method):
+        """Get the main direction of an object from its OBB using the specified method"""
+        obb = create_obb_from_TopoDs_Shape(geom)
+        dir1, dir2 = obb.get_two_main_direction_OBB_shape(method)
+        return dir1
+
+    def _calculate_angle_between_dir(self, dir1: gp_Dir, dir2: gp_Dir):
+        """Calculate angle in degrees between two gp_Dir vectors and check if it matches the target angle within tolerance"""
+        # Use OCC's Angle() method which returns angle in radians
+        angle_rad = dir1.Angle(dir2)
+        angle_deg = np.degrees(angle_rad)
+        
+        # Handle circular nature of angles and find smallest difference
+        angle_diff = abs(angle_deg - self.angle_difference)
+        angle_diff = min(angle_diff, 360 - angle_diff)
+        
+        return angle_diff <= self.angle_tolerance
+
+    def run(self, state="Final"):
+        self.tree = ifcopenshell.geom.tree()
+        self.select_source.run()
+        self.select_target.run()
+
+        # Collect source objects with their main directions
+        source_objects = []
+        for ifc_file in self.select_source.dict_elements.keys():
+            iterator = ifcopenshell.geom.iterator(
+                self.geom_settings,
+                ifc_file,
+                multiprocessing.cpu_count(),
+                include=self.select_source.dict_elements[ifc_file],
+            )
+            if iterator.initialize():
+                while True:
+                    shape = iterator.get()
+                    geom = shape.geometry
+                    entity = ifc_file.by_id(shape.data.id)
+                    direction = self._get_object_main_direction(geom,self.direction_method_for_source)
+                    source_objects.append({
+                        "entity": entity,
+                        "direction": direction
+                    })
+                    if not iterator.next():
+                        break
+
+        # Collect target objects with their main directions
+        target_objects = []
+        for ifc_file in self.select_target.dict_elements.keys():
+            iterator = ifcopenshell.geom.iterator(
+                self.geom_settings,
+                ifc_file,
+                multiprocessing.cpu_count(),
+                include=self.select_target.dict_elements[ifc_file],
+            )
+            if iterator.initialize():
+                while True:
+                    shape = iterator.get()
+                    geom = shape.geometry
+                    entity = ifc_file.by_id(shape.data.id)
+                    direction = self._get_object_main_direction(geom,self.direction_method_for_target)
+                    target_objects.append({
+                        "entity": entity,
+                        "direction": direction
+                    })
+                    if not iterator.next():
+                        break
+
+        # Check all pairs for angle matches
+        for source_obj in source_objects:
+            for target_obj in target_objects:
+                if self._calculate_angle_between_dir(
+                    source_obj["direction"],
+                    target_obj["direction"]
+                ):
+                    print(source_obj["entity"].GlobalId,target_obj["entity"].GlobalId)
+                    result = ClashResultTwoObjects(
+                        source=source_obj["entity"],
+                        target=target_obj["entity"],
+                        state=True
+                    )
+                    self.result.append(result)
+
+        if state == "Final":
+            self.manage_result()
+
+        if state == "Select":
+            self.produce_select()
+
+
 class Intersection(RuleCheckTwoObjects):
     def __init__(self, source, target, tolerance=0.1):
         super().__init__(source, target)

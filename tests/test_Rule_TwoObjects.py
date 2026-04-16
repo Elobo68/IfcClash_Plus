@@ -5,7 +5,7 @@ import unittest
 import ifcopenshell
 import sys
 sys.path.insert(0, './ifcclash_plus')
-from Rules import Volume, Area, TopSurface, Intersection, Above, OBB_Above,Clearance,Collision,OBB_Below
+from Rules import  Intersection, Above, OBB_Above,Clearance,Collision,OBB_Below, AngleBetween
 from RuleClass import SelectFacet,RuleFile,ClashResultOneObject,ClashResultTwoObjects
 from ifctester import ids
 
@@ -217,6 +217,44 @@ class TestRules(unittest.TestCase):
         #We should find the same number as the above test rule. 
         for result in obb_above_rule.result:
             self.assertIsInstance(result, ClashResultTwoObjects)
+
+    def test_angle_between_rule(self):
+        """Test AngleBetween rule with walls and doors"""
+
+        OneRuleFile = RuleFile()
+        OneRuleFile.list_ifc_path = [self.ifc_path]
+
+        # Select walls as source
+        first_facet = ids.Entity(name="IFCWALLSTANDARDCASE")
+        first_facet = ids.Attribute(name="GlobalId",value="2O2Fr$t4X7Zf8NOew3FLQD")
+        first_select = SelectFacet()
+        first_select.applicability = [first_facet]
+
+        # Select doors as target
+        second_facet = ids.Entity(name="IFCDOOR")
+        second_select = SelectFacet()
+        second_select.applicability = [second_facet]
+
+        # Create AngleBetween rule to find perpendicular relationships (walls and doors)
+        # Use Wide method for direction, 90 degrees for perpendicular, 15 degrees tolerance
+        angle_between_rule = AngleBetween(
+            source=first_select,
+            target=second_select,
+            direction_method_for_source="Narrow",
+            direction_method_for_target="Wide",
+            angle_difference=0.0,
+            angle_tolerance=0.1
+        )
+        
+        OneRuleFile.contains = [angle_between_rule]
+        OneRuleFile.run()
+
+        # Verify results
+        for result in angle_between_rule.result:
+            self.assertIsInstance(result, ClashResultTwoObjects)
+
+        # Should find some walls and doors at right angles
+        self.assertEqual(len(angle_between_rule.result), 0)
 
 
 if __name__ == '__main__':
