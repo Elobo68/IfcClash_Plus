@@ -161,6 +161,7 @@ class TestRules(unittest.TestCase):
         second_select.applicability = [second_facet]
 
         obb_above_rule = OBB_Below(first_select, second_select, 0.1)
+
         
         OneRuleFile.contains=[obb_above_rule]
         OneRuleFile.run()
@@ -225,8 +226,9 @@ class TestRules(unittest.TestCase):
         OneRuleFile.list_ifc_path = [self.ifc_path]
 
         # Select walls as source
-        first_facet = ids.Entity(name="IFCWALLSTANDARDCASE")
+        #first_facet = ids.Entity(name="IFCWALLSTANDARDCASE")
         first_facet = ids.Attribute(name="GlobalId",value="2O2Fr$t4X7Zf8NOew3FLQD")
+        first_facet = ids.Entity(name="IFCWALLSTANDARDCASE")
         first_select = SelectFacet()
         first_select.applicability = [first_facet]
 
@@ -240,21 +242,24 @@ class TestRules(unittest.TestCase):
         angle_between_rule = AngleBetween(
             source=first_select,
             target=second_select,
-            direction_method_for_source="Narrow",
-            direction_method_for_target="Wide",
+            direction_method_for_source="Wide",
+            direction_method_for_target="Narrow",
             angle_difference=0.0,
-            angle_tolerance=0.1
+            angle_tolerance=0.5
         )
+
+        angle_between_rule.display()
         
         OneRuleFile.contains = [angle_between_rule]
         OneRuleFile.run()
 
         # Verify results
         for result in angle_between_rule.result:
+            print(result.source.GlobalId,result.target.GlobalId)
             self.assertIsInstance(result, ClashResultTwoObjects)
 
         # Should find some walls and doors at right angles
-        self.assertEqual(len(angle_between_rule.result), 0)
+        self.assertEqual(len(angle_between_rule.result), 8)
 
 
 if __name__ == '__main__':

@@ -19,6 +19,7 @@ from OCC.Core.BRepExtrema import BRepExtrema_DistShapeShape
 import ifcopenshell.util.placement
 from OCC.Core.gp import gp_Ax3, gp_Pnt, gp_Dir, gp_Trsf, gp_XYZ, gp_Vec
 import ifcopenshell.util.shape
+from construct_display_function import create_makepolygon_with_dir
 
 
 DIRECTION_METHOD = Literal["Wide", "Narrow"]
@@ -395,7 +396,6 @@ class AngleBetween(RuleCheckTwoObjects):
                     source_obj["direction"],
                     target_obj["direction"]
                 ):
-                    print(source_obj["entity"].GlobalId,target_obj["entity"].GlobalId)
                     result = ClashResultTwoObjects(
                         source=source_obj["entity"],
                         target=target_obj["entity"],
@@ -408,6 +408,66 @@ class AngleBetween(RuleCheckTwoObjects):
 
         if state == "Select":
             self.produce_select()
+
+
+    def _display_specific(self):
+        from OCC.Core.AIS import AIS_Shape
+        from OCC.Core.Quantity import Quantity_Color, Quantity_TOC_RGB
+        
+        settings = ifcopenshell.geom.settings()
+        settings.set("USE_WORLD_COORDS", True)
+        #settings.set("use-python-opencascade", True)
+
+        for ifc_file in self.select_source.dict_elements.keys():
+            iterator = ifcopenshell.geom.iterator(
+                self.geom_settings,
+                ifc_file,
+                multiprocessing.cpu_count(),
+                include=self.select_source.dict_elements[ifc_file],
+            )
+            if iterator.initialize():
+                while True:
+                    shape = iterator.get()
+                    geom = shape.geometry
+                    entity = ifc_file.by_id(shape.data.id)
+                    direction = self._get_object_main_direction(geom,self.direction_method_for_source)
+                    polygon=create_makepolygon_with_dir((direction.X(),direction.Y(),direction.Z()))
+                    ais_shape=AIS_Shape(polygon)
+                    green_color = Quantity_Color(0.0, 1.0, 0.0, Quantity_TOC_RGB)
+                    ais_shape.SetColor(green_color)
+                    ais_shape.SetTransparency(0.2)
+                    self.display.Context.Display(ais_shape, True)
+
+                    if not iterator.next():
+                        break
+
+        # Collect target objects with their main directions
+        target_objects = []
+        for ifc_file in self.select_target.dict_elements.keys():
+            iterator = ifcopenshell.geom.iterator(
+                self.geom_settings,
+                ifc_file,
+                multiprocessing.cpu_count(),
+                include=self.select_target.dict_elements[ifc_file],
+            )
+            if iterator.initialize():
+                while True:
+                    shape = iterator.get()
+                    geom = shape.geometry
+                    entity = ifc_file.by_id(shape.data.id)
+                    direction = self._get_object_main_direction(geom,self.direction_method_for_target)
+                    polygon=create_makepolygon_with_dir((direction.X(),direction.Y(),direction.Z()))
+                    ais_shape=AIS_Shape(polygon)
+                    green_color = Quantity_Color(0.0, 1.0, 0.0, Quantity_TOC_RGB)
+                    ais_shape.SetColor(green_color)
+                    ais_shape.SetTransparency(0.2)
+                    self.display.Context.Display(ais_shape, True)
+
+                    
+
+
+                    if not iterator.next():
+                        break
 
 
 class Intersection(RuleCheckTwoObjects):
@@ -1300,9 +1360,6 @@ class OBB_Below(RuleCheckTwoObjects):
 
                     if not iterator.next():
                         break
-
-
-
 
 class OBB_Front_And_Back(RuleCheckTwoObjects):
     def __init__(self, source, target, tolerance,method:DIRECTION_METHOD):

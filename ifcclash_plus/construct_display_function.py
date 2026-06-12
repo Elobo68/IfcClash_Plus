@@ -342,7 +342,7 @@ def display_OBB_front_back(file_path, angle_offset=0):
         angle_offset: Angle en degrés pour ajuster manuellement la direction (par défaut 0).
     """
     file = ifcopenshell.open(file_path)
-    objects = file.by_type("IFCSLAB")
+    objects = file.by_type("IFCDOOR")
 
     settings = ifcopenshell.geom.settings()
     settings.set("USE_WORLD_COORDS", True)
