@@ -48,6 +48,28 @@ class RuleFile:
         for rule_or_file in self.contains:
             rule_or_file.update_file_info(self.list_ifc_path, self.list_ifc_file)
 
+    def to_xml(self, filepath: str) -> None:
+        """
+        Sauvegarde le RuleFile dans un fichier XML.
+        
+        Args:
+            filepath: Chemin du fichier XML de destination.
+        """
+        save_to_xml(self, filepath)
+
+    @classmethod
+    def from_xml(cls, filepath: str) -> 'RuleFile':
+        """
+        Charge un RuleFile depuis un fichier XML.
+        
+        Args:
+            filepath: Chemin du fichier XML à charger.
+        
+        Returns:
+            Un objet RuleFile reconstitué.
+        """
+        return load_from_xml(filepath)
+
     def load_file(self):
         for path in self.list_ifc_path:
             self.list_ifc_file.append(ifcopenshell.open(path))
