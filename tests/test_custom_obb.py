@@ -125,8 +125,8 @@ class TestCustomOBB(unittest.TestCase):
         
         # Test with percentage
         top_obb = self.obb.detach_top_by_extrude("10%")
-        self.assertEqual(top_obb.ZHSize(), 0.05)  # 10% of 10 / 2
-        expected_center_z = original_center_z + original_z + 0.05 # 10% of 10 / 2
+        self.assertEqual(top_obb.ZHSize(), 0.5)  # 10% of 10 / 2
+        expected_center_z = original_center_z + original_z + 0.5 # 10% of 10 / 2
         self.assertAlmostEqual(top_obb.Center().Z(), expected_center_z, places=4)
         
         # Test with absolute value
@@ -142,8 +142,8 @@ class TestCustomOBB(unittest.TestCase):
         
         # Test with percentage
         bottom_obb = self.obb.detach_bottom_by_extrude("10%")
-        self.assertEqual(bottom_obb.ZHSize(), 0.05)  # 10% of 10 / 2
-        expected_center_z = original_center_z - original_z - 0.05  # 10% of 10 / 2
+        self.assertEqual(bottom_obb.ZHSize(), 0.5)  # 10% of 10 / 2
+        expected_center_z = original_center_z - original_z - 0.5  # 10% of 10 / 2
         self.assertAlmostEqual(bottom_obb.Center().Z(), expected_center_z, places=4)
         
         # Test with absolute value
