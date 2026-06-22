@@ -179,6 +179,8 @@ class RuleCheck:
 
         self.result: list[ClashResult] = []
 
+        self.result_fail_source: list[ifcopenshell.entity_instance] = []
+
         self.select_source: Select = source
         self.select_grouping: SelectFacet = None
         self.select_criticity: list[SelectFacet] = []
@@ -186,6 +188,8 @@ class RuleCheck:
         self.abs_or_rel_check: AbsoluteOrRelativeChecking = None
 
         self.grouped_result: list[GroupResult] = []
+
+        
 
     def add_to_tree(self, Select, type_of_tree):
         for ifc_file in Select.dict_elements.keys():
@@ -404,6 +408,7 @@ class RuleCheckTwoObjects(RuleCheck):
         super().__init__(source)
         self.select_target: Select = target
         self.select_exception: list[SelectRule] = []
+        self.result_fail_target: list[ifcopenshell.entity_instance] = []
 
     def produce_select(self):
         # @todo pass the fail or success element.

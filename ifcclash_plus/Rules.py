@@ -55,10 +55,8 @@ class Volume(RuleCheckOneObject):
                     if self.volume_min < volume < self.volume_max:
                         result = ClashResultOneObject(source=entity, state=True)
                         self.result.append(result)
-                    else: #@todo How do deal with failed OneRule ?
-                        ...
-                        #result = ClashResultOneObject(source=entity, state=False)
-                        #self.result.append(result)
+                    else:          
+                        self.result_fail_source.append(entity)
                     if not iterator.next():
                         break
 
@@ -148,10 +146,8 @@ class TopOrBottomSurface(RuleCheckOneObject):
                     if self.surface_min < area < self.surface_max:
                         result = ClashResultOneObject(source=entity, state=True)
                         self.result.append(result)
-                    else:#@todo How do deal with failed OneRule ?
-                        ...
-                        #result = ClashResultOneObject(source=entity, state=False)
-                        #self.result.append(result)
+                    else:          
+                        self.result_fail_source.append(entity)
 
                     if not iterator.next():
                         break
@@ -193,9 +189,8 @@ class LateralSurface(RuleCheckOneObject):
                     if self.surface_min < area < self.surface_max:
                         result = ClashResultOneObject(source=entity, state=True)
                         self.result.append(result)
-                    else:
-                        result = ClashResultOneObject(source=entity, state=False)
-                        self.result.append(result)
+                    else:          
+                        self.result_fail_source.append(entity)
 
                     if not iterator.next():
                         break
@@ -237,9 +232,8 @@ class ProjectedSurface(RuleCheckOneObject):
                     if self.surface_min < area < self.surface_max:
                         result = ClashResultOneObject(source=entity, state=True)
                         self.result.append(result)
-                    else:
-                        result = ClashResultOneObject(source=entity, state=False)
-                        self.result.append(result)
+                    else:          
+                        self.result_fail_source.append(entity)
 
                     if not iterator.next():
                         break
