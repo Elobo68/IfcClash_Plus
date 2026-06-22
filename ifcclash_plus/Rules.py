@@ -290,9 +290,8 @@ class Orientation(RuleCheckOneObject):
                     if check_direction:
                         result = ClashResultOneObject(source=entity, state=True)
                         self.result.append(result)
-                    else:
-                        result = ClashResultOneObject(source=entity, state=False)
-                        self.result.append(result)
+                    else:          
+                        self.result_fail_source.append(entity)
 
                     if not iterator.next():
                         break
