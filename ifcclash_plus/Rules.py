@@ -1134,7 +1134,7 @@ class OBB_Above(RuleCheckTwoObjects):
         self.select_target.run()
 
         # Create OBBs for source objects (these serve as detection zones)
-        source_obbs = []
+        source_geoms = []
         for ifc_file in self.select_source.dict_elements.keys():
             iterator = ifcopenshell.geom.iterator(
                 self.geom_settings,
@@ -1152,8 +1152,8 @@ class OBB_Above(RuleCheckTwoObjects):
                     # Create OBB for the source object (detection zone)
                     obb = create_obb_from_TopoDs_Shape(geom) #Why not use 
                     clash_obb = obb.detach_top_by_extrude(self.tolerance)
-                    compound = clash_obb.to_TopoDS_Compound()
-                    source_obbs.append({"entity": entity, "geom": compound})
+                    compound = clash_obb.to_TopoDS_Solid()
+                    source_geoms.append({"entity": entity, "geom": compound,"obb":clash_obb})
 
                     if not iterator.next():
                         break
@@ -1174,15 +1174,20 @@ class OBB_Above(RuleCheckTwoObjects):
                     shape = iterator.get()
                     geom = shape.geometry
                     entity = ifc_file.by_id(shape.data.id)
-
-                    target_geoms.append({"entity": entity, "geom": geom})
+                    obb = create_obb_from_TopoDs_Shape(geom)
+                    target_geoms.append({"entity": entity, "geom": geom,"obb":obb})
 
                     if not iterator.next():
                         break
 
         # Check for clashes between source OBBs (detection zones) and target geometries
-        for source_data in source_obbs:
+        for source_data in source_geoms:
             for target_data in target_geoms:
+                
+                if source_data["obb"].IsOut(target_data["obb"]):
+                    continue
+
+
                 source_geom = source_data["geom"]
                 target_geom = target_data["geom"]
 
@@ -1276,7 +1281,7 @@ class OBB_Below(RuleCheckTwoObjects):
                     # Create OBB for the source object (detection zone)
                     obb = create_obb_from_TopoDs_Shape(geom)
                     clash_obb = obb.detach_bottom_by_extrude(self.tolerance)
-                    compound = clash_obb.to_TopoDS_Compound_V2()
+                    compound = clash_obb.to_TopoDS_Solid()
                     source_geoms.append({"entity": entity, "geom": compound,"obb":clash_obb})
 
                     if not iterator.next():

@@ -2,7 +2,7 @@ from OCC.Core.Bnd import Bnd_Box, Bnd_OBB
 from OCC.Core.BRepBndLib import brepbndlib
 from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_MakeEdge
 from OCC.Core.gp import gp_Ax3, gp_Pnt, gp_Dir, gp_Trsf, gp_XYZ, gp_Vec
-from OCC.Core.TopoDS import TopoDS_Compound
+from OCC.Core.TopoDS import TopoDS_Compound, TopoDS_Shell, TopoDS_Solid
 from OCC.Core.BRep import BRep_Builder
 from OCC.Core.BRepMesh import BRepMesh_IncrementalMesh
 from OCC.Core.BRep import BRep_Tool
@@ -1115,6 +1115,84 @@ class Custom_OBB(Bnd_OBB):
             builder.Add(compound, face)
 
         return compound
+
+    def to_TopoDS_Solid(self) -> TopoDS_Solid:
+        """
+        Convertit un Bnd_OBB en TopoDS_Solid (boîte pleine).
+        
+        Créer un solide valide avec une orientation cohérente des faces (vers l'extérieur).
+        
+        Returns:
+            TopoDS_Solid: Un solide représentant la boîte orientée.
+        """
+        # Récupérer le centre et les axes de l'OBB
+        center = self.Center()
+        x_axis = self.XHSize()  # Demi-longueur en X
+        y_axis = self.YHSize()  # Demi-longueur en Y
+        z_axis = self.ZHSize()  # Demi-longueur en Z
+
+        # Récupérer les directions des axes
+        x_dir = self.XDirection()
+        y_dir = self.YDirection()
+        z_dir = self.ZDirection()
+
+        # Calculer les 8 coins en combinant ±x, ±y, ±z
+        corners = []
+        for dx in [-1, 1]:
+            for dy in [-1, 1]:
+                for dz in [-1, 1]:
+                    corner = gp_Pnt(
+                        center.X() + dx * x_axis * x_dir.X() + dy * y_axis * y_dir.X() + dz * z_axis * z_dir.X(),
+                        center.Y() + dx * x_axis * x_dir.Y() + dy * y_axis * y_dir.Y() + dz * z_axis * z_dir.Y(),
+                        center.Z() + dx * x_axis * x_dir.Z() + dy * y_axis * y_dir.Z() + dz * z_axis * z_dir.Z()
+                    )
+                    corners.append(corner)
+
+        # Créer les 6 faces avec orientation cohérente (anti-horaire vu de l'extérieur)
+        # Ordre des coins :
+        # 0: (-1,-1,-1), 1: (+1,-1,-1), 2: (-1,+1,-1), 3: (+1,+1,-1)  => Face basse (z-)
+        # 4: (-1,-1,+1), 5: (+1,-1,+1), 6: (-1,+1,+1), 7: (+1,+1,+1)  => Face haute (z+)
+        faces = [
+            # Face basse (z min) - vue de dessous, sens anti-horaire
+            BRepBuilderAPI_MakeFace(
+                BRepBuilderAPI_MakePolygon(corners[0], corners[1], corners[3], corners[2], True).Wire()
+            ).Face(),
+            # Face haute (z max) - vue de dessus, sens anti-horaire
+            BRepBuilderAPI_MakeFace(
+                BRepBuilderAPI_MakePolygon(corners[5], corners[7], corners[6], corners[4], True).Wire()
+            ).Face(),
+            # Face gauche (x min) - vue de gauche, sens anti-horaire
+            BRepBuilderAPI_MakeFace(
+                BRepBuilderAPI_MakePolygon(corners[0], corners[4], corners[6], corners[2], True).Wire()
+            ).Face(),
+            # Face droite (x max) - vue de droite, sens anti-horaire
+            BRepBuilderAPI_MakeFace(
+                BRepBuilderAPI_MakePolygon(corners[1], corners[3], corners[7], corners[5], True).Wire()
+            ).Face(),
+            # Face avant (y min) - vue de devant, sens anti-horaire
+            BRepBuilderAPI_MakeFace(
+                BRepBuilderAPI_MakePolygon(corners[0], corners[1], corners[5], corners[4], True).Wire()
+            ).Face(),
+            # Face arrière (y max) - vue de derrière, sens anti-horaire
+            BRepBuilderAPI_MakeFace(
+                BRepBuilderAPI_MakePolygon(corners[2], corners[6], corners[7], corners[3], True).Wire()
+            ).Face(),
+        ]
+
+        # Créer une coque (shell) à partir des faces
+        shell_builder = BRep_Builder()
+        shell = TopoDS_Shell()
+        shell_builder.MakeShell(shell)
+        for face in faces:
+            shell_builder.Add(shell, face)
+
+        # Créer un solide à partir de la coque
+        solid_builder = BRep_Builder()
+        solid = TopoDS_Solid()
+        solid_builder.MakeSolid(solid)
+        solid_builder.Add(solid, shell)
+
+        return solid
     
 if __name__ == "__main__":
     import ifcopenshell
