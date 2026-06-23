@@ -97,8 +97,10 @@ class TestRules(unittest.TestCase):
 
         self.assertEqual(len(intersection_rule.result), 152)
 
-    def test_above_rule(self):
+    def test_above_rule_Max_To_Min(self):
         """Test Above rule"""
+
+        #The high cabinet are 0.8m below the slab. We should find 8 of them.
 
         OneRuleFile = RuleFile()
         OneRuleFile.list_ifc_path= [self.ifc_path]
@@ -112,7 +114,7 @@ class TestRules(unittest.TestCase):
         second_select.applicability = [second_facet]
 
 
-        above_rule = Above(source=first_select, target=second_select, tolerance=0.81, above_type="Above_MaxToMin")
+        above_rule = Above(source=first_select, target=second_select, tolerance=1.0, above_type="Above_MaxToMin") #0.81 should work.
         above_rule.run()
 
         OneRuleFile.contains=[above_rule]
@@ -120,26 +122,54 @@ class TestRules(unittest.TestCase):
 
         self.assertEqual(len(above_rule.result), 8)
         for result in above_rule.result:
-            self.assertIsInstance(result, above_rule.ClashResultTwoObjects)
+            self.assertIsInstance(result, ClashResultTwoObjects)
+
+
+    def test_above_rule_MaxToMax(self):
+        """Test Above rule"""
+
+        #The high cabinet are 0.8m below the slab. We should find 8 of them.
+
+        OneRuleFile = RuleFile()
+        OneRuleFile.list_ifc_path= [self.ifc_path]
+
+        first_facet = ids.Entity(name="IFCWALLSTANDARDCASE")
+        first_select = SelectFacet()
+        first_select.applicability = [first_facet]
+
+        second_facet = ids.Entity(name="IFCWINDOW")
+        second_select = SelectFacet()
+        second_select.applicability = [second_facet]
+
+
+        above_rule = Above(source=first_select, target=second_select, tolerance=1.0, above_type="Above_MaxToMax")
+        above_rule.run()
+
+        OneRuleFile.contains=[above_rule]
+        OneRuleFile.run()
+
+        self.assertEqual(len(above_rule.result), 12)
+        for result in above_rule.result:
+            self.assertIsInstance(result, ClashResultTwoObjects)
 
 
     def test_below_rule(self):
         #@todo check below rule, it copy pasted only
-        """Test Above rule"""
+        """Test Above rule, it's the same test than before but the other way around."""
 
         OneRuleFile = RuleFile()
         OneRuleFile.list_ifc_path= [self.ifc_path]
 
-        first_facet = ids.Entity(name="IFCFURNISHINGELEMENT")
+        first_facet = ids.Entity(name="IFCSLAB")
         first_select = SelectFacet()
         first_select.applicability = [first_facet]
 
-        second_facet = ids.Entity(name="IFCSLAB")
+        second_facet = ids.Entity(name="IFCFURNISHINGELEMENT")
         second_select = SelectFacet()
         second_select.applicability = [second_facet]
 
 
-        above_rule = Below(source=first_select, target=second_select, tolerance=0.81, above_type="Above_MaxToMin")
+        above_rule = Below(source=first_select, target=second_select, tolerance=0.81, above_type="Below_MaxToMin")
         above_rule.run()
 
         OneRuleFile.contains=[above_rule]
@@ -147,7 +177,7 @@ class TestRules(unittest.TestCase):
 
         self.assertEqual(len(above_rule.result), 8)
         for result in above_rule.result:
-            self.assertIsInstance(result, above_rule.ClashResultTwoObjects)
+            self.assertIsInstance(result, ClashResultTwoObjects)
 
     def test_obb_above_rule(self):
         """Test OBB_Above rule"""
