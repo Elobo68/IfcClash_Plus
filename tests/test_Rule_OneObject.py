@@ -107,39 +107,45 @@ class TestRules(unittest.TestCase):
         OneRuleFile = RuleFile()
         OneRuleFile.list_ifc_path= [self.ifc_path]
 
-        first_facet = ids.Entity(name="IFCFURNISHINGELEMENT")
+        first_facet = ids.Entity(name="IFCWALLSTANDARDCASE")
         first_select = SelectFacet()
         first_select.applicability = [first_facet]
 
 
-        direction=(0.0,0.0,1.0)
+        direction=(1.0,0.0,0.0)
         top_surface_rule = LateralSurface(first_select, 1, 2,direction)
 
         OneRuleFile.contains=[top_surface_rule]
         OneRuleFile.run()
 
-        self.assertEqual(len(top_surface_rule.result), 4) 
+        
         for result in top_surface_rule.result:
+            print(result.source)
             self.assertIsInstance(result, ClashResultOneObject)
+
+        self.assertEqual(len(top_surface_rule.result), 5) 
 
     def test_projected_rule(self):
         """Test TopSurface rule"""
         OneRuleFile = RuleFile()
         OneRuleFile.list_ifc_path= [self.ifc_path]
 
-        first_facet = ids.Entity(name="IFCFURNISHINGELEMENT")
+        first_facet = ids.Entity(name="IFCWALLSTANDARDCASE")
         first_select = SelectFacet()
         first_select.applicability = [first_facet]
 
-        direction=(0.0,0.0,1.0)
+        direction=(1.0,0.0,0.0)
         top_surface_rule = ProjectedSurface(first_select, 1, 2,direction)
 
         OneRuleFile.contains=[top_surface_rule]
         OneRuleFile.run()
 
-        self.assertEqual(len(top_surface_rule.result), 4) 
+        
         for result in top_surface_rule.result:
+            print(result.source)
             self.assertIsInstance(result, ClashResultOneObject)
+
+        self.assertEqual(len(top_surface_rule.result), 11) 
 
     def test_orientation_rule(self):
         """Test TopSurface rule"""

@@ -166,7 +166,7 @@ class LateralSurface(RuleCheckOneObject):
         self.direction: float = direction
         self.geom_settings = ifcopenshell.geom.settings()
 
-    def run(self, state="Final"):#@todo Modify the rule
+    def run(self, state="Final"):#@todo Check if the result is trustworthy
 
         self.tree = ifcopenshell.geom.tree()
         self.select_source.run()
@@ -209,7 +209,7 @@ class ProjectedSurface(RuleCheckOneObject):
         self.direction: float = direction
         self.geom_settings = ifcopenshell.geom.settings()
 
-    def run(self, state="Final"):#@todo Modify the rule
+    def run(self, state="Final"):#@todo Check if the result is trustworthy
 
         self.tree = ifcopenshell.geom.tree()
         self.select_source.run()
