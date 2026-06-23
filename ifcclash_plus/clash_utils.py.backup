@@ -57,7 +57,7 @@ def get_extreme_faces(
 
     # Find the faces with a normal vector pointing in the desired direction using dot product
     # normal_tol < 0 is pointing away, = 0 is perpendicular, and > 0 is pointing towards.
-    normal_tol = 0.1  # Close to perpendicular, but with a fuzz for numerical tolerance, 0.01 for almost no tolerance.
+    normal_tol = 0.001  # Close to perpendicular, but with a fuzz for numerical tolerance, 0.01 for almost no tolerance.
     dot_products = np.dot(triangle_normals, direction)
     filtered_face_indices = np.where(dot_products > normal_tol)[0]
     filtered_faces = faces[filtered_face_indices]
@@ -185,39 +185,79 @@ def get_extreme_faces_with_area(
     geometry: ShapeType,
     axis: AXIS_LITERAL = "Z",
     direction: Optional[VECTOR_3D] = None,
-) -> dict:
-    """
-    Calcule les faces extrêmes selon une direction donnée et retourne leur surface totale.
+) -> list[VECTOR_3D]:
     
-    Args:
-        geometry: La géométrie à analyser (ShapeType de ifcopenshell).
-        axis: L'axe selon lequel trouver les faces extrêmes (X, Y, Z).
-        direction: Direction personnalisée (optionnel). Si None, utilise la direction positive de l'axe.
+    #For skydome, there is no top because the object. It's not really possible to have a top.
     
-    Returns:
-        Un dictionnaire contenant:
-        - extrem_faces: Liste des indices des faces extrêmes.
-        - total_area: Surface totale des faces extrêmes (sans recouvrement).
-    """
-    #@todo Verify this function with complex shape
-    from ifcopenshell.util.shape import get_vertices
     
-    # Utiliser get_extreme_faces pour obtenir les faces extrêmes
-    extrem_faces = get_extreme_faces(geometry, axis, direction)
-    
-    if len(extrem_faces) == 0:
-        return {"extrem_faces": [], "total_area": 0.0}
-    
+
+    from ifcopenshell.util.shape import get_vertices,get_faces
+
+
+ 
+    MIN_SURFACE_COVERAGE = 0.99
+
+
+    if direction is None:
+        # By default we will retrieve the top surface
+        direction = {"X": (1.0, 0.0, 0.0), "Y": (0.0, 1.0, 0.0), "Z": (0.0, 0.0, 1.0)}[axis]
+
     vertices = get_vertices(geometry)
+    faces = get_faces(geometry)
+
+    # Calculate the triangle normal vectors
+    v1 = vertices[faces[:, 1]] - vertices[faces[:, 0]]
+    v2 = vertices[faces[:, 2]] - vertices[faces[:, 0]]
+    triangle_normals = np.cross(v1, v2)
+
+    # Normalize the normal vectors
+    triangle_normals = triangle_normals / np.linalg.norm(triangle_normals, axis=1)[:, np.newaxis]
+    direction = np.array(direction) / np.linalg.norm(direction)
+
+    # Find the faces with a normal vector pointing in the desired direction using dot product
+    # normal_tol < 0 is pointing away, = 0 is perpendicular, and > 0 is pointing towards.
+    normal_tol = 0.01  # Close to perpendicular, but with a fuzz for numerical tolerance, 0.01 for almost no tolerance.
+    dot_products = np.dot(triangle_normals, direction)
+    filtered_face_indices = np.where(dot_products > normal_tol)[0]
+    filtered_faces = faces[filtered_face_indices]
+
+    polygons = [shapely.Polygon(vertices[face]) for face in filtered_faces]
     
-    # Calculer la surface totale des faces extrêmes (surface réelle, sans projection)
-    total_area = 0.0
-    for face in extrem_faces:
-        points = vertices[face]
-        v1 = points[1] - points[0]
-        v2 = points[2] - points[0]
-        cross_product = np.cross(v1, v2)
-        triangle_area = 0.5 * np.linalg.norm(cross_product)
-        total_area += triangle_area
-    
-    return {"extrem_faces": extrem_faces, "total_area": total_area}
+    #Find the average height of each face in order to check if it's highest or lowest.
+    list_of_z_avg=[]
+    for face in filtered_faces:
+        Points=vertices[face]
+        z_avg=(Points[0][2]+Points[1][2]+Points[2][2])/3
+        list_of_z_avg.append(z_avg)
+
+    extrem_faces=[]
+    total_area=0
+    for polygon,z_avg,face in zip(polygons,list_of_z_avg,filtered_faces):
+        covered_area=0
+        for loop_polygon,loop_z_avg in zip(polygons,list_of_z_avg):
+            if polygon==loop_polygon:
+                continue
+
+            """
+            #This function can be used to find Top or Bottom element.
+            if direction[2]==-1:
+                if z_avg<loop_z_avg:
+                    continue
+            if direction[2]==1:
+                if z_avg>loop_z_avg:
+                    continue
+            """
+
+            intersection=polygon.intersection(loop_polygon)
+            covering_percent=intersection.area/polygon.area
+            covered_area+=covering_percent
+
+        #if the face is totaly recover, it's not a top (or bottom element). 
+        if MIN_SURFACE_COVERAGE<covered_area:
+            continue
+        print("Polygon Area",polygon.area)
+        total_area=total_area+polygon.area
+        extrem_faces.append(face)
+
+    result={"extrem_faces":extrem_faces,"total_area":total_area}
+    return result
