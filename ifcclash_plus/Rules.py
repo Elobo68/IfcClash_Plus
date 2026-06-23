@@ -811,6 +811,7 @@ class Above(RuleCheckTwoObjects):
         self.type = above_type
         self.tolerance: float = tolerance
         self.geom_settings = ifcopenshell.geom.settings(USE_WORLD_COORDS=True)
+        #self.geom_settings.set("use-python-opencascade", True)
 
     def run(self, state="Final"):
         self.tree = ifcopenshell.geom.tree()
@@ -830,6 +831,13 @@ class Above(RuleCheckTwoObjects):
         else:
             target_direction = (0.0, 0.0, 1.0)
 
+
+        #todo This is a slow way, you check every combinaison. We could reduce it with a BB clash before to narrow the faces.
+        #I need to finish the OBB Above rule, and use it as an entry for this function. 
+        #1. OBB Check
+        #2. Get Top or Bottom Face
+
+
         # Check the extrem face of the source
         for ifc_file in self.select_source.dict_elements.keys():
             iterator = ifcopenshell.geom.iterator(
@@ -841,8 +849,10 @@ class Above(RuleCheckTwoObjects):
 
             if iterator.initialize():
                 while True:
+                    
                     shape = iterator.get()
                     geom = shape.geometry
+                    print(shape)
                     extrem_faces = clash_utils.get_extreme_faces(
                         geometry=geom, direction=source_direction
                     )
@@ -857,6 +867,7 @@ class Above(RuleCheckTwoObjects):
                     if not iterator.next():
                         break
 
+            break
         # Check the extrem face of the target
         for ifc_file in self.select_target.dict_elements.keys():
             iterator = ifcopenshell.geom.iterator(
@@ -898,11 +909,12 @@ class Above(RuleCheckTwoObjects):
 
                     min_distance_found = None
                     selected_result = None
+        #todo add an OBB check to see if the two objects are close to each other.
 
-                    for taget_face in target_faces["extrem_faces"]:
-                        t0 = target_faces["vertices"][taget_face[0]]
-                        t1 = target_faces["vertices"][taget_face[1]]
-                        t2 = target_faces["vertices"][taget_face[2]]
+                    for target_face in target_faces["extrem_faces"]:
+                        t0 = target_faces["vertices"][target_face[0]]
+                        t1 = target_faces["vertices"][target_face[1]]
+                        t2 = target_faces["vertices"][target_face[2]]
                         target_center = (t0 + t1 + t2) / 3
 
                         t = [t0, t1, t2]
@@ -957,6 +969,8 @@ class Below(RuleCheckTwoObjects): #@todo Check this rule
         self.geom_settings = ifcopenshell.geom.settings(USE_WORLD_COORDS=True)
 
     def run(self, state="Final"):
+
+        #######See Above rule before changes
         self.tree = ifcopenshell.geom.tree()
         self.select_source.run()
         self.select_target.run()
@@ -1043,15 +1057,14 @@ class Below(RuleCheckTwoObjects): #@todo Check this rule
                     min_distance_found = None
                     selected_result = None
 
-                    for taget_face in target_faces["extrem_faces"]:
-                        t0 = target_faces["vertices"][taget_face[0]]
-                        t1 = target_faces["vertices"][taget_face[1]]
-                        t2 = target_faces["vertices"][taget_face[2]]
+                    for target_face in target_faces["extrem_faces"]:
+                        t0 = target_faces["vertices"][target_face[0]]
+                        t1 = target_faces["vertices"][target_face[1]]
+                        t2 = target_faces["vertices"][target_face[2]]
                         target_center = (t0 + t1 + t2) / 3
 
                         t = [t0, t1, t2]
 
-                        dist = clash_utils.min_distance_two_faces(s, t)
 
                         # The target face must be below the source.
                         check_below = (source_center - target_center)[2]
@@ -1059,7 +1072,7 @@ class Below(RuleCheckTwoObjects): #@todo Check this rule
                             continue
 
                         # @todo If the object is above but with an offset in x or y, it will be detected as well.
-
+                        dist = clash_utils.min_distance_two_faces(s, t)
                         # we only select the worst case scenario.
                         if dist["distance"] < self.tolerance:
                             if min_distance_found is None:
@@ -1137,7 +1150,7 @@ class OBB_Above(RuleCheckTwoObjects):
                     entity = ifc_file.by_id(shape.data.id)
 
                     # Create OBB for the source object (detection zone)
-                    obb = create_obb_from_TopoDs_Shape(geom)
+                    obb = create_obb_from_TopoDs_Shape(geom) #Why not use 
                     clash_obb = obb.detach_top_by_extrude(self.tolerance)
                     compound = clash_obb.to_TopoDS_Compound()
                     source_obbs.append({"entity": entity, "geom": compound})
@@ -1242,9 +1255,10 @@ class OBB_Below(RuleCheckTwoObjects):
         self.tree = ifcopenshell.geom.tree()
         self.select_source.run()
         self.select_target.run()
+        print()
 
         # Create OBBs for source objects (these serve as detection zones)
-        source_obbs = []
+        source_geoms = []
         for ifc_file in self.select_source.dict_elements.keys():
             iterator = ifcopenshell.geom.iterator(
                 self.geom_settings,
@@ -1262,8 +1276,8 @@ class OBB_Below(RuleCheckTwoObjects):
                     # Create OBB for the source object (detection zone)
                     obb = create_obb_from_TopoDs_Shape(geom)
                     clash_obb = obb.detach_bottom_by_extrude(self.tolerance)
-                    compound = clash_obb.to_TopoDS_Compound()
-                    source_obbs.append({"entity": entity, "geom": compound})
+                    compound = clash_obb.to_TopoDS_Compound_V2()
+                    source_geoms.append({"entity": entity, "geom": compound,"obb":clash_obb})
 
                     if not iterator.next():
                         break
@@ -1271,7 +1285,6 @@ class OBB_Below(RuleCheckTwoObjects):
         # Get target geometries
         target_geoms = []
         for ifc_file in self.select_target.dict_elements.keys():
-            # self.geom_settings.set(self.geom_settings.USE_PYTHON_OPENCASCADE,True)
             iterator = ifcopenshell.geom.iterator(
                 self.geom_settings,
                 ifc_file,
@@ -1284,26 +1297,34 @@ class OBB_Below(RuleCheckTwoObjects):
                     shape = iterator.get()
                     geom = shape.geometry
                     entity = ifc_file.by_id(shape.data.id)
-
-                    target_geoms.append({"entity": entity, "geom": geom})
+                    obb = create_obb_from_TopoDs_Shape(geom)
+                    target_geoms.append({"entity": entity, "geom": geom,"obb":obb})
 
                     if not iterator.next():
                         break
 
         # Check for clashes between source OBBs (detection zones) and target geometries
-        for source_data in source_obbs:
+        for source_data in source_geoms:
             for target_data in target_geoms:
-                source_geom = source_data["geom"]
-                target_geom = target_data["geom"]
+
+                if source_data["obb"].IsOut(target_data["obb"]):
+                    continue
+                
+                the_source_geom = source_data["geom"]
+                the_target_geom = target_data["geom"]
+
+                
 
                 # Calculate distance between OBB and geometry
                 dist_tool = BRepExtrema_DistShapeShape()
-                dist_tool.LoadS1(source_geom)
-                dist_tool.LoadS2(target_geom)
+                dist_tool.LoadS1(the_source_geom)
+                dist_tool.LoadS2(the_target_geom)
                 dist_tool.Perform()
                 distance = dist_tool.Value()
 
-                # If they touch (distance <= tolerance) and target is above source, it's a clash
+                print(source_data["entity"].GlobalId, target_data["entity"].GlobalId, distance, dist_tool.InnerSolution())
+
+                # If they touch (distance <= tolerance), it's a clash.
                 if distance <= 1e-6:
                     result = ClashResultTwoObjects(
                         source=source_data["entity"],

@@ -15,6 +15,8 @@ import ifcopenshell.ifcopenshell_wrapper as W
 
 from typing import Literal
 import numpy as np
+from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_MakePolygon,BRepBuilderAPI_MakeFace
+
 
 
 """
@@ -1042,7 +1044,78 @@ class Custom_OBB(Bnd_OBB):
 
         return compound
 
+    def to_TopoDS_Compound_V2(self):
+        """
+        Convertit un Bnd_OBB en TopoDS_Compound en calculant ses 8 coins.
 
+        Args:
+            obb (Bnd_OBB): Une boîte englobante orientée.
+
+        Returns:
+            TopoDS_Compound: Un compound contenant la géométrie de la boîte.
+        """
+        # Récupérer le centre et les axes de l'OBB
+        center = self.Center()
+        x_axis = self.XHSize()  # Demi-longueur en X
+        y_axis = self.YHSize()  # Demi-longueur en Y
+        z_axis = self.ZHSize()  # Demi-longueur en Z
+
+        # Récupérer les directions des axes
+        x_dir = self.XDirection()
+        y_dir = self.YDirection()
+        z_dir = self.ZDirection()
+
+        # Calculer les 8 coins en combinant ±x, ±y, ±z
+        corners = []
+        for dx in [-1, 1]:
+            for dy in [-1, 1]:
+                for dz in [-1, 1]:
+                    corner = gp_Pnt(
+                        center.X() + dx * x_axis * x_dir.X() + dy * y_axis * y_dir.X() + dz * z_axis * z_dir.X(),
+                        center.Y() + dx * x_axis * x_dir.Y() + dy * y_axis * y_dir.Y() + dz * z_axis * z_dir.Y(),
+                        center.Z() + dx * x_axis * x_dir.Z() + dy * y_axis * y_dir.Z() + dz * z_axis * z_dir.Z()
+                    )
+                    corners.append(corner)
+
+        # Créer les 6 faces de la boîte
+        faces = [
+            # Face avant (z min)
+            BRepBuilderAPI_MakeFace(
+                BRepBuilderAPI_MakePolygon(corners[0], corners[1], corners[2], corners[3], True).Wire()
+            ).Face(),
+            # Face arrière (z max)
+            BRepBuilderAPI_MakeFace(
+                BRepBuilderAPI_MakePolygon(corners[4], corners[5], corners[6], corners[7], True).Wire()
+            ).Face(),
+            # Face gauche (x min)
+            BRepBuilderAPI_MakeFace(
+                BRepBuilderAPI_MakePolygon(corners[0], corners[3], corners[7], corners[4], True).Wire()
+            ).Face(),
+            # Face droite (x max)
+            BRepBuilderAPI_MakeFace(
+                BRepBuilderAPI_MakePolygon(corners[1], corners[2], corners[6], corners[5], True).Wire()
+            ).Face(),
+            # Face inférieure (y min)
+            BRepBuilderAPI_MakeFace(
+                BRepBuilderAPI_MakePolygon(corners[0], corners[1], corners[5], corners[4], True).Wire()
+            ).Face(),
+            # Face supérieure (y max)
+            BRepBuilderAPI_MakeFace(
+                BRepBuilderAPI_MakePolygon(corners[3], corners[2], corners[6], corners[7], True).Wire()
+            ).Face(),
+        ]
+
+        # Créer un TopoDS_Compound
+        builder = BRep_Builder()
+        compound = TopoDS_Compound()
+        builder.MakeCompound(compound)
+
+        # Ajouter toutes les faces au compound
+        for face in faces:
+            builder.Add(compound, face)
+
+        return compound
+    
 if __name__ == "__main__":
     import ifcopenshell
 

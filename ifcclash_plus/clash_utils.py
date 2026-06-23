@@ -9,10 +9,16 @@ import ifcopenshell.util.representation
 from ifcopenshell.util.shape_builder import VectorType
 from math import radians, cos
 from ifcopenshell.geom import ShapeElementType, ShapeType
-from typing import Optional, Literal, Union
+from typing import Optional, Literal, Union, Dict, List
 from OCC.Core.BRepExtrema import BRepExtrema_DistShapeShape
 from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_MakePolygon, BRepBuilderAPI_MakeFace
-from OCC.Core.gp import gp_Pnt
+from OCC.Core.gp import gp_Pnt, gp_XYZ
+from OCC.Core.Bnd import Bnd_Box
+from OCC.Core.TopoDS import TopoDS_Compound, TopoDS_Face
+from OCC.Core.TopExp import TopExp_Explorer
+from OCC.Core.TopAbs import TopAbs_FACE
+from OCC.Core.BRep import BRep_Tool
+from OCC.Core.BRepMesh import BRepMesh_IncrementalMesh
 
 AXIS_LITERAL = Literal["X", "Y", "Z"]
 
@@ -117,26 +123,6 @@ def triangle_to_occ_face(triangle):
             return face.Face()
     return None
 
-def min_distance_two_faces(ListPoint1, ListPoint2):
-    face1 = triangle_to_occ_face(ListPoint1)
-    face2 = triangle_to_occ_face(ListPoint2)
-    
-    if face1 is None or face2 is None:
-        raise ValueError("Not possible to create face")
-    
-    dist_calc = BRepExtrema_DistShapeShape(face1, face2)
-    
-    if dist_calc.IsDone():
-        point1 = dist_calc.PointOnShape1(1)
-        point2 = dist_calc.PointOnShape2(1)
-        
-        return {
-            'distance': dist_calc.Value(),
-            'point1': [point1.X(), point1.Y(), point1.Z()],
-            'point2': [point2.X(), point2.Y(), point2.Z()]
-        }
-    
-    raise RuntimeError("Fail to calculate distance")
 
 def get_XYZ_placement(Object):
     Origin = ifcopenshell.util.placement.get_local_placement(
@@ -221,3 +207,125 @@ def get_extreme_faces_with_area(
         total_area += triangle_area
     
     return {"extrem_faces": extrem_faces, "total_area": total_area}
+
+
+def calculate_geometry_size_from_3_points(p1, p2, p3):
+    """
+    Calculate the size (area) of a triangle defined by three points in 3D space.
+
+    Args:
+        p1 (tuple[float, float, float]): First point coordinates (x, y, z).
+        p2 (tuple[float, float, float]): Second point coordinates (x, y, z).
+        p3 (tuple[float, float, float]): Third point coordinates (x, y, z).
+
+    Returns:
+        float: The area of the triangle formed by the three points.
+    """
+    # Convert points to numpy arrays for vector operations
+    p1_arr = np.array(p1)
+    p2_arr = np.array(p2)
+    p3_arr = np.array(p3)
+
+    # Calculate vectors from p1 to p2 and p1 to p3
+    v1 = p2_arr - p1_arr
+    v2 = p3_arr - p1_arr
+
+    # Calculate the cross product of v1 and v2
+    cross_product = np.cross(v1, v2)
+
+    # The area of the triangle is half the magnitude of the cross product
+    area = 0.5 * np.linalg.norm(cross_product)
+
+    return area
+
+
+def clash_bvh_copy_from_CPP(
+    bvh_a,
+    bvh_b,
+    extend: float = 0.0
+) -> Dict[int, List[int]]:
+    """
+    Detects collisions between two BVH trees and returns a dictionary of clashing pairs.
+    This function is a Python port of the C++ `clash_bvh` function, designed to work with
+    OpenCASCADE BVH trees for efficient collision detection.
+
+    Args:
+        bvh_a: The first BVH tree (source).
+        bvh_b: The second BVH tree (target).
+        extend: Additional tolerance for bounding box expansion (default: 0.0).
+
+    Returns:
+        A dictionary where keys are indices from `bvh_a` and values are lists of indices from `bvh_b` that collide.
+    """
+    bvh_clashes: Dict[int, List[int]] = {}
+
+    # Iterate over all nodes in `bvh_a`
+    for i in range(bvh_a.Length()):
+        if not bvh_a.IsOuter(i):
+            continue  # Skip non-outer nodes
+
+        # Get the bounding box for node `i` in `bvh_a`
+        bvh_a_min = bvh_a.MinPoint(i)
+        bvh_a_max = bvh_a.MaxPoint(i)
+
+        # Expand the bounding box slightly to avoid numerical issues
+        bvh_a_min_expanded = gp_XYZ(
+            bvh_a_min.X() - 1e-3,
+            bvh_a_min.Y() - 1e-3,
+            bvh_a_min.Z() - 1e-3,
+        )
+        bvh_a_max_expanded = gp_XYZ(
+            bvh_a_max.X() + 1e-3,
+            bvh_a_max.Y() + 1e-3,
+            bvh_a_max.Z() + 1e-3,
+        )
+
+        # Create a bounding box for `bvh_a` node `i`
+        box_a = Bnd_Box()
+        box_a.Add(gp_Pnt(bvh_a_min_expanded))
+        box_a.Add(gp_Pnt(bvh_a_max_expanded))
+
+        # Use a stack to traverse `bvh_b` (DFS)
+        stack = [0]  # Start from the root of `bvh_b`
+
+        while stack:
+            j = stack.pop()
+
+            # Get the bounding box for node `j` in `bvh_b`
+            bvh_b_min = bvh_b.MinPoint(j)
+            bvh_b_max = bvh_b.MaxPoint(j)
+
+            # Expand the bounding box with `extend` and a small tolerance
+            bvh_b_min_expanded = gp_XYZ(
+                bvh_b_min.X() - (extend + 1e-3),
+                bvh_b_min.Y() - (extend + 1e-3),
+                bvh_b_min.Z() - (extend + 1e-3),
+            )
+            bvh_b_max_expanded = gp_XYZ(
+                bvh_b_max.X() + (extend + 1e-3),
+                bvh_b_max.Y() + (extend + 1e-3),
+                bvh_b_max.Z() + (extend + 1e-3),
+            )
+
+            # Create a bounding box for `bvh_b` node `j`
+            box_b = Bnd_Box()
+            box_b.Add(gp_Pnt(bvh_b_min_expanded))
+            box_b.Add(gp_Pnt(bvh_b_max_expanded))
+
+            # Check if `box_a` and `box_b` overlap
+            if box_a.IsOut(box_b):
+                continue  # No collision, skip
+
+            # If `j` is an outer node, record the collision
+            if bvh_b.IsOuter(j):
+                if i in bvh_clashes:
+                    bvh_clashes[i].append(j)
+                else:
+                    bvh_clashes[i] = [j]
+            else:
+                # Push children of `j` onto the stack for further traversal
+                stack.append(bvh_b.Child(0, j))
+                stack.append(bvh_b.Child(1, j))
+
+    return bvh_clashes
+

@@ -114,7 +114,7 @@ class TestRules(unittest.TestCase):
         second_select.applicability = [second_facet]
 
 
-        above_rule = Above(source=first_select, target=second_select, tolerance=1.0, above_type="Above_MaxToMin") #0.81 should work.
+        above_rule = Above(source=first_select, target=second_select, tolerance=0.85, above_type="Above_MaxToMin") #0.81 should work.
         above_rule.run()
 
         OneRuleFile.contains=[above_rule]
@@ -234,7 +234,7 @@ class TestRules(unittest.TestCase):
         OneRuleFile = RuleFile()
         OneRuleFile.list_ifc_path= [self.ifc_path]
 
-        first_facet = ids.Entity(name="IfcSLab")
+        first_facet = ids.Entity(name="IfcSlab")
         first_select = SelectFacet()
         first_select.applicability = [first_facet]
 
@@ -242,15 +242,18 @@ class TestRules(unittest.TestCase):
         second_select = SelectFacet()
         second_select.applicability = [second_facet]
 
-        obb_above_rule = OBB_Below(first_select, second_select, 0.81)
+        obb_above_rule = OBB_Below(first_select, second_select, 0.81) #0.81 should work
+        
         
         OneRuleFile.contains=[obb_above_rule]
         OneRuleFile.run()
 
-        self.assertEqual(len(obb_above_rule.result), 8)
+        
         #We should find the same number as the above test rule. 
         for result in obb_above_rule.result:
             self.assertIsInstance(result, ClashResultTwoObjects)
+
+        self.assertEqual(len(obb_above_rule.result), 8)
 
     def test_obb_above_rule_2(self):
         """Test OBB_above rule, it's the inverse of OBB_Below, to cross check"""
@@ -267,6 +270,7 @@ class TestRules(unittest.TestCase):
         second_select.applicability = [second_facet]
 
         obb_above_rule = OBB_Above(first_select, second_select, 0.1)
+        obb_above_rule._display_specific()
         
         OneRuleFile.contains=[obb_above_rule]
         OneRuleFile.run()
