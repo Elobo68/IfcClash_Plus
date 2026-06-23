@@ -810,16 +810,16 @@ class Above(RuleCheckTwoObjects):
         super().__init__(source, target)
         self.type = above_type
         self.tolerance: float = tolerance
-        self.geom_settings = ifcopenshell.geom.settings(USE_WORLD_COORDS=True)
-        #self.geom_settings.set("use-python-opencascade", True)
+        self.geom_settings = ifcopenshell.geom.settings()
+        self.geom_settings.set(self.geom_settings.USE_PYTHON_OPENCASCADE, True)
 
     def run(self, state="Final"):
         self.tree = ifcopenshell.geom.tree()
         self.select_source.run()
         self.select_target.run()
 
-        sources_faces = []
-        targets_faces = []
+        sources_data = []
+        targets_data = []
 
         if "MinTo" in self.type:
             source_direction = (0.0, 0.0, -1.0)
@@ -852,17 +852,14 @@ class Above(RuleCheckTwoObjects):
                     
                     shape = iterator.get()
                     geom = shape.geometry
-                    print(shape)
-                    extrem_faces = clash_utils.get_extreme_faces(
-                        geometry=geom, direction=source_direction
-                    )
+                    entity = ifc_file.by_id(shape.data.id)
+
+                    extrem_faces = clash_utils.get_extreme_faces(geometry=geom, direction=source_direction)
                     vertices = get_vertices(geom)
-                    dict = {
-                        "entity": ifc_file.by_id(shape.id),
-                        "vertices": vertices,
-                        "extrem_faces": extrem_faces,
-                    }
-                    sources_faces.append(dict)
+                    obb = create_obb_from_TopoDs_Shape(geom)
+                    clash_obb = obb.detach_top_by_extrude(self.tolerance)
+                    dict = {"entity": entity,"vertices": vertices,"extrem_faces": extrem_faces,"obb":clash_obb}
+                    sources_data.append(dict)
 
                     if not iterator.next():
                         break
@@ -881,16 +878,13 @@ class Above(RuleCheckTwoObjects):
                 while True:
                     shape = iterator.get()
                     geom = shape.geometry
-                    extrem_faces = clash_utils.get_extreme_faces(
-                        geometry=geom, direction=target_direction
-                    )
+                    entity = ifc_file.by_id(shape.data.id)
+
+                    extrem_faces = clash_utils.get_extreme_faces(geometry=geom, direction=target_direction)
                     vertices = get_vertices(geom)
-                    dict = {
-                        "entity": ifc_file.by_id(shape.id),
-                        "vertices": vertices,
-                        "extrem_faces": extrem_faces,
-                    }
-                    targets_faces.append(dict)
+                    obb = create_obb_from_TopoDs_Shape(geom)
+                    dict = {"entity": entity,"vertices": vertices,"extrem_faces": extrem_faces,"obb":obb}
+                    targets_data.append(dict)
 
                     if not iterator.next():
                         break
@@ -898,12 +892,16 @@ class Above(RuleCheckTwoObjects):
         list_result = []
 
         # Check if part of extrem faces are close to each other
-        for source_faces in sources_faces:
-            for target_faces in targets_faces:
-                for source_face in source_faces["extrem_faces"]:
-                    s0 = source_faces["vertices"][source_face[0]]
-                    s1 = source_faces["vertices"][source_face[1]]
-                    s2 = source_faces["vertices"][source_face[2]]
+        for source in sources_data:
+            for target in targets_data:
+
+                if source["obb"].IsOut(target["obb"]):
+                    continue
+
+                for source_face in source["extrem_faces"]:
+                    s0 = source["vertices"][source_face[0]]
+                    s1 = source["vertices"][source_face[1]]
+                    s2 = source["vertices"][source_face[2]]
                     source_center = (s0 + s1 + s2) / 3
                     s = [s0, s1, s2]
 
@@ -911,10 +909,10 @@ class Above(RuleCheckTwoObjects):
                     selected_result = None
         #todo add an OBB check to see if the two objects are close to each other.
 
-                    for target_face in target_faces["extrem_faces"]:
-                        t0 = target_faces["vertices"][target_face[0]]
-                        t1 = target_faces["vertices"][target_face[1]]
-                        t2 = target_faces["vertices"][target_face[2]]
+                    for target_face in target["extrem_faces"]:
+                        t0 = target["vertices"][target_face[0]]
+                        t1 = target["vertices"][target_face[1]]
+                        t2 = target["vertices"][target_face[2]]
                         target_center = (t0 + t1 + t2) / 3
 
                         t = [t0, t1, t2]
@@ -933,15 +931,15 @@ class Above(RuleCheckTwoObjects):
                             if min_distance_found is None:
                                 min_distance_found = dist["distance"]
                                 selected_result = {
-                                    "source": source_faces["entity"],
-                                    "target": target_faces["entity"],
+                                    "source": source["entity"],
+                                    "target": target["entity"],
                                 }
                                 continue
                             if min_distance_found < dist["distance"]:
                                 min_distance_found = dist["distance"]
                                 selected_result = {
-                                    "source": source_faces["entity"],
-                                    "target": target_faces["entity"],
+                                    "source": source["entity"],
+                                    "target": target["entity"],
                                 }
 
                     if selected_result is not None:

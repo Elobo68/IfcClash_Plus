@@ -70,7 +70,7 @@ There is a sheet for every rule, that present the rule, the parameters and the e
 | **Règle** | **Type** | **Règle** | **Doc** | **Test** |
 |-----------|----------|-----------|---------|----------|
 | [OBB Above](doc/2ObjectsRules/OBB_Above) | Two Objects | OK | KO | OK |
-| [OBB Below](doc/2ObjectsRules/OBB_Below) | Two Objects | OK | KO | Partial |
+| [OBB Below](doc/2ObjectsRules/OBB_Below) | Two Objects | OK | KO | OK |
 | [OBB Front And Back](doc/2ObjectsRules/OBB_Front_And_Back) | Two Objects | KO | KO | KO |
 
 #### Other type of rule
