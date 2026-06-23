@@ -19,6 +19,13 @@ from OCC.Core.TopExp import TopExp_Explorer
 from OCC.Core.TopAbs import TopAbs_FACE
 from OCC.Core.BRep import BRep_Tool
 from OCC.Core.BRepMesh import BRepMesh_IncrementalMesh
+from OCC.Core.BRep import BRep_Builder
+from OCC.Core.TopoDS import TopoDS_Compound, TopoDS_Shell, topods
+from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_MakeSolid, BRepBuilderAPI_Sewing
+from OCC.Core.TopAbs import TopAbs_SHELL
+import math
+from OCC.Core.gp import gp_Ax3, gp_Pnt, gp_Dir, gp_Trsf, gp_XYZ, gp_Vec
+from OCC.Core.BRepGProp import BRepGProp_Face
 
 AXIS_LITERAL = Literal["X", "Y", "Z"]
 
@@ -185,6 +192,48 @@ def get_extreme_faces_OpenCascade(
     
     return bottom_faces
 
+
+def faces_to_compound(faces):
+    """Toujours valide, même avec une seule face."""
+    if not faces:
+        return None
+    builder = BRep_Builder()
+    compound = TopoDS_Compound()
+    builder.MakeCompound(compound)
+    for face in faces:
+        builder.Add(compound, face)
+    return compound
+
+
+def get_faces_toward_direction(shape, direction: gp_Dir, angle_threshold_deg=45.0):
+    cos_threshold = math.cos(math.radians(angle_threshold_deg))
+    ref = gp_Vec(direction.X(), direction.Y(), direction.Z())
+
+    result = []
+    explorer = TopExp_Explorer(shape, TopAbs_FACE)
+
+    while explorer.More():
+        face = topods.Face(explorer.Current())
+        props = BRepGProp_Face(face)
+
+        umin, umax, vmin, vmax = props.Bounds()
+        u_mid = (umin + umax) / 2.0
+        v_mid = (vmin + vmax) / 2.0
+
+        pnt = gp_Pnt()
+        nor = gp_Vec()
+        props.Normal(u_mid, v_mid, pnt, nor)
+
+        mag = nor.Magnitude()
+        if mag > 1e-10:
+            nor.Divide(mag)
+            if nor.Dot(ref) > cos_threshold:
+                result.append(face)
+
+        explorer.Next()
+
+    # Retourner directement un compound — pas besoin de sewing ni de solid
+    return faces_to_compound(result)
 
 def triangle_to_occ_face(triangle):
     """Convertit un triangle en face OpenCASCADE"""
