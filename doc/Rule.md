@@ -56,6 +56,17 @@ This rule work on a face level. It can restrict rule application to certains cas
 If the Object Rule find a relevant face, i can still pass it threw Faces Rule to check if the restriction is OK.
 I need to pass the faces with the result.
 
+## OBB
+WIP
+Define OBB
+
+Above and below are easy to produce
+Front and back is not always given in the IFC file.
+I want to provide way to determine front and back.
+We can determine OBB front or back with the size of the OBB.
+
+A wall is thin and long. We can then determine the direction of the wall with that.
+It's similar with a door. It's not clean, but it can help in tricky situation. It must be adapted to every use case.
 
 ### Example
 The table is below the light.
@@ -149,6 +160,7 @@ WORK IN PROGRESS
 
 # Folder of Rule
 WORK IN PROGRESS
+
 
 
 

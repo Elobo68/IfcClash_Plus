@@ -157,17 +157,19 @@ class TestRules(unittest.TestCase):
         first_select.applicability = [first_facet]
 
 
-        up_orientation=(1.0,1.0,0.0)
+        orientation_to_check=(0.0,1.0,0.0) #We check wall that are higher than longer. 
         angular_tolerance=0.1
 
-        rule = Orientation(first_select, up_orientation,"narrow",'Parrallel',angular_tolerance)
+        rule = Orientation(first_select, orientation_to_check,"narrow",'Parrallel',angular_tolerance)
 
         OneRuleFile.contains=[rule]
         OneRuleFile.run()
 
-        self.assertEqual(len(rule.result), 56) 
+        
         for result in rule.result:
+            print(result.source)
             self.assertIsInstance(result, ClashResultOneObject)
+        self.assertEqual(len(rule.result), 30) 
 
 
 

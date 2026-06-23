@@ -5,7 +5,7 @@ import unittest
 import ifcopenshell
 import sys
 sys.path.insert(0, './ifcclash_plus')
-from Rules import  Intersection, Above, OBB_Above,Clearance,Collision,OBB_Below, AngleBetween
+from Rules import  Intersection, Above,Below ,OBB_Above,Clearance,Collision,OBB_Below, AngleBetween
 from RuleClass import SelectFacet,RuleFile,ClashResultOneObject,ClashResultTwoObjects
 from ifctester import ids
 
@@ -113,6 +113,33 @@ class TestRules(unittest.TestCase):
 
 
         above_rule = Above(source=first_select, target=second_select, tolerance=0.81, above_type="Above_MaxToMin")
+        above_rule.run()
+
+        OneRuleFile.contains=[above_rule]
+        OneRuleFile.run()
+
+        self.assertEqual(len(above_rule.result), 8)
+        for result in above_rule.result:
+            self.assertIsInstance(result, above_rule.ClashResultTwoObjects)
+
+
+    def test_below_rule(self):
+        #@todo check below rule, it copy pasted only
+        """Test Above rule"""
+
+        OneRuleFile = RuleFile()
+        OneRuleFile.list_ifc_path= [self.ifc_path]
+
+        first_facet = ids.Entity(name="IFCFURNISHINGELEMENT")
+        first_select = SelectFacet()
+        first_select.applicability = [first_facet]
+
+        second_facet = ids.Entity(name="IFCSLAB")
+        second_select = SelectFacet()
+        second_select.applicability = [second_facet]
+
+
+        above_rule = Below(source=first_select, target=second_select, tolerance=0.81, above_type="Above_MaxToMin")
         above_rule.run()
 
         OneRuleFile.contains=[above_rule]
