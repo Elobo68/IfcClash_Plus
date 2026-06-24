@@ -1091,6 +1091,8 @@ def get_faces_visible_from_direction_with_plane(
     from OCC.Core.TopAbs import TopAbs_FACE
     from OCC.Core.TopoDS import topods
     
+    direction=-direction # We need to invert it, otherwise it doesn't make sense for the user.
+
     # Étape 1: Créer le plan perpendiculaire
     plane = create_view_plane(shape, direction, plane_distance, plane_size_factor)
     
