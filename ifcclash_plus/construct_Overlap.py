@@ -69,7 +69,7 @@ if __name__ == "__main__":
     
     # Liste pour stocker toutes les faces visibles (orientées vers la direction)
     
-    direction_to_check=gp_Dir(0.0, 0.0, -1.0)
+    direction_to_check=gp_Dir(0.0, 0.0, 1.0)
     
     if iterator.initialize():
         # Première passe : collecter toutes les faces visibles
@@ -82,6 +82,9 @@ if __name__ == "__main__":
 
             result = clash_utils.get_faces_visible_from_direction_with_plane(shape=geom,direction=direction_to_check,n_ray_samples=20)
             List_of_faces = result['visible_faces']
+
+            print(entity)
+            print(len(entity))
 
 
             for oneface in List_of_faces:

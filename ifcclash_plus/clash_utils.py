@@ -1173,3 +1173,270 @@ def get_faces_visible_from_direction_with_plane(
         'hit_count': hit_count
     }
 
+
+
+
+#### Function for Above Rule, it's a second method. It works well with simple geometry but it struggle with more complex one.
+def get_faces_toward_direction(shape, direction: gp_Dir, angle_threshold_deg=45.0):
+    cos_threshold = math.cos(math.radians(angle_threshold_deg))
+    ref = gp_Vec(direction.X(), direction.Y(), direction.Z())
+
+    result = []
+    explorer = TopExp_Explorer(shape, TopAbs_FACE)
+
+    while explorer.More():
+        face = topods.Face(explorer.Current())
+        props = BRepGProp_Face(face)
+
+        umin, umax, vmin, vmax = props.Bounds()
+        u_mid = (umin + umax) / 2.0
+        v_mid = (vmin + vmax) / 2.0
+
+        pnt = gp_Pnt()
+        nor = gp_Vec()
+        props.Normal(u_mid, v_mid, pnt, nor)
+
+        mag = nor.Magnitude()
+        if mag > 1e-10:
+            nor.Divide(mag)
+            if nor.Dot(ref) > cos_threshold:
+                result.append(face)
+
+        explorer.Next()
+
+    # Retourner directement un compound — pas besoin de sewing ni de solid
+    return result
+
+
+def get_box_corners(box: Bnd_Box) -> List[gp_Pnt]:
+    """
+    Retourne les 8 coins d'une boîte englobante.
+    
+    Args:
+        box: Bnd_Box - la boîte englobante
+        
+    Returns:
+        List[gp_Pnt]: Liste des 8 points des coins
+    """
+    corners = []
+    min_p = box.CornerMin()
+    max_p = box.CornerMax()
+    for dx in [min_p.X(), max_p.X()]:
+        for dy in [min_p.Y(), max_p.Y()]:
+            for dz in [min_p.Z(), max_p.Z()]:
+                corners.append(gp_Pnt(dx, dy, dz))
+    return corners
+
+
+def rectangles_overlap(rect1, rect2) -> bool:
+    """
+    Vérifie si deux rectangles axis-aligned se chevauchent.
+    
+    Args:
+        rect1: Tuple (min_x, max_x, min_y, max_y)
+        rect2: Tuple (min_x, max_x, min_y, max_y)
+        
+    Returns:
+        bool: True si les rectangles se chevauchent
+    """
+    return not (rect1[1] < rect2[0] or rect2[1] < rect1[0] or
+                rect1[3] < rect2[2] or rect2[3] < rect1[2])
+
+
+def rectangles_overlap_50percent(rect1, rect2, threshold=0.5) -> bool:
+    """
+    Vérifie si deux rectangles axis-aligned se chevauchent avec au moins threshold% de recouvrement.
+    Le recouvrement est calculé par rapport à la plus petite des deux surfaces.
+    
+    Args:
+        rect1: Tuple (min_x, max_x, min_y, max_y)
+        rect2: Tuple (min_x, max_x, min_y, max_y)
+        threshold: Seuil de recouvrement (0.0 à 1.0), default 0.5 pour 50%
+        
+    Returns:
+        bool: True si le recouvrement est >= threshold
+    """
+    # Vérifier d'abord s'il y a chevauchement
+    if not rectangles_overlap(rect1, rect2):
+        return False
+    
+    # Calculer l'intersection
+    inter_min_x = max(rect1[0], rect2[0])
+    inter_max_x = min(rect1[1], rect2[1])
+    inter_min_y = max(rect1[2], rect2[2])
+    inter_max_y = min(rect1[3], rect2[3])
+    
+    # Surface d'intersection
+    inter_width = inter_max_x - inter_min_x
+    inter_height = inter_max_y - inter_min_y
+    inter_area = inter_width * inter_height
+    
+    if inter_area <= 0:
+        return False
+    
+    # Surfaces des rectangles
+    rect1_area = (rect1[1] - rect1[0]) * (rect1[3] - rect1[2])
+    rect2_area = (rect2[1] - rect2[0]) * (rect2[3] - rect2[2])
+    
+    # Vérifier que le recouvrement représente au moins threshold de chaque rectangle
+    # Utiliser la plus petite surface comme référence
+    min_area = min(rect1_area, rect2_area)
+    
+    if min_area <= 0:
+        return False
+    
+    return (inter_area / min_area) >= threshold
+
+
+def project_on_plane(points: List[gp_Pnt], axis: gp_Dir, origin: gp_Pnt = None) -> Tuple[List[Tuple[float, float]], gp_Vec, gp_Vec]:
+    """
+    Projette des points sur le plan perpendiculaire à axis.
+    
+    Args:
+        points: Liste de points à projeter
+        axis: Direction de l'axe normal au plan
+        origin: Point d'origine pour la projection (default: (0,0,0))
+        
+    Returns:
+        Tuple: (liste de coordonnées 2D (x,y), vecteur base X, vecteur base Y)
+    """
+    axis_vec = gp_Vec(axis.X(), axis.Y(), axis.Z())
+    
+    # Trouver un vecteur perpendiculaire à axis
+    if abs(axis_vec.X()) < 0.5:
+        base_x = gp_Vec(1, 0, 0)
+    else:
+        base_x = gp_Vec(0, 1, 0)
+    
+    # Orthogonaliser base_x par rapport à axis
+    dot_x_view = base_x.Dot(axis_vec)
+    view_squared = axis_vec.Dot(axis_vec)
+    if view_squared > 1e-10:
+        factor = dot_x_view / view_squared
+        axis_scaled = gp_Vec(axis_vec.X() * factor, axis_vec.Y() * factor, axis_vec.Z() * factor)
+        base_x.Subtract(axis_scaled)
+    
+    # Normaliser base_x
+    base_x_mag = base_x.Magnitude()
+    if base_x_mag > 1e-10:
+        base_x.Divide(base_x_mag)
+    
+    # base_y = axis × base_x
+    base_y = axis_vec.Crossed(base_x)
+    base_y_mag = base_y.Magnitude()
+    if base_y_mag > 1e-10:
+        base_y.Divide(base_y_mag)
+    
+    # Projeter les points
+    if origin is None:
+        origin = gp_Pnt(0, 0, 0)
+    
+    coords_2d = []
+    for p in points:
+        vec = gp_Vec(p.X() - origin.X(), p.Y() - origin.Y(), p.Z() - origin.Z())
+        x = vec.Dot(base_x)
+        y = vec.Dot(base_y)
+        coords_2d.append((x, y))
+    
+    return coords_2d, base_x, base_y
+
+
+def is_face_below(face: TopoDS_Face, other_face: TopoDS_Face, axis: gp_Dir, tolerance: float = 1e-6) -> bool:
+    """
+    Détermine si face est en dessous de other_face selon l'axe donné,
+    avec chevauchement des projections sur le plan perpendiculaire.
+    
+    Une face est considérée comme "en dessous" si (Option C) :
+    1. Leurs projections sur le plan perpendiculaire à l'axe se chevauchent 
+       avec au moins 50% de recouvrement par rapport à la plus petite surface
+    2. Le centre de face est en dessous du centre de other_face selon l'axe
+    
+    Args:
+        face: TopoDS_Face - la face candidate à être en dessous
+        other_face: TopoDS_Face - la face de référence
+        axis: gp_Dir - l'axe selon lequel vérifier (ex: gp_Dir(0,0,1) pour Z)
+        tolerance: Tolérance numérique pour les comparaisons
+        
+    Returns:
+        bool: True si face est en dessous de other_face selon axis avec chevauchement >= 50%
+    """
+    # Éviter la comparaison avec soi-même
+    if face.IsSame(other_face):
+        return False
+    
+    # Calculer les boîtes englobantes
+    face_box = Bnd_Box()
+    brepbndlib.Add(face, face_box)
+    other_box = Bnd_Box()
+    brepbndlib.Add(other_face, other_box)
+    
+    # Obtenir tous les 8 coins
+    face_corners = get_box_corners(face_box)
+    other_corners = get_box_corners(other_box)
+    
+    # Calculer les centres pour la comparaison sur l'axe
+    face_center = gp_Pnt(
+        (face_box.CornerMin().X() + face_box.CornerMax().X()) / 2.0,
+        (face_box.CornerMin().Y() + face_box.CornerMax().Y()) / 2.0,
+        (face_box.CornerMin().Z() + face_box.CornerMax().Z()) / 2.0
+    )
+    other_center = gp_Pnt(
+        (other_box.CornerMin().X() + other_box.CornerMax().X()) / 2.0,
+        (other_box.CornerMin().Y() + other_box.CornerMax().Y()) / 2.0,
+        (other_box.CornerMin().Z() + other_box.CornerMax().Z()) / 2.0
+    )
+    
+    # Projeter les centres sur l'axe
+    axis_vec = gp_Vec(axis.X(), axis.Y(), axis.Z())
+    face_center_proj = gp_Vec(face_center.X(), face_center.Y(), face_center.Z()).Dot(axis_vec)
+    other_center_proj = gp_Vec(other_center.X(), other_center.Y(), other_center.Z()).Dot(axis_vec)
+    
+    # Vérifier la relation "en dessous" : centre de face < centre de other_face sur l'axe
+    if face_center_proj >= other_center_proj - tolerance:
+        return False
+    
+    # Projeter sur le plan perpendiculaire à l'axe
+    # Utiliser face_center comme origine
+    face_2d, base_x, base_y = project_on_plane(face_corners, axis, face_center)
+    other_2d, _, _ = project_on_plane(other_corners, axis, face_center)
+    
+    # Calculer les boîtes englobantes 2D
+    face_rect = (
+        min(p[0] for p in face_2d),
+        max(p[0] for p in face_2d),
+        min(p[1] for p in face_2d),
+        max(p[1] for p in face_2d)
+    )
+    other_rect = (
+        min(p[0] for p in other_2d),
+        max(p[0] for p in other_2d),
+        min(p[1] for p in other_2d),
+        max(p[1] for p in other_2d)
+    )
+    
+    # Vérifier le chevauchement 2D avec au moins 50% de recouvrement
+    return rectangles_overlap_50percent(face_rect, other_rect, threshold=0.9)
+
+
+def is_face_below_any(face: TopoDS_Face, other_faces: List[TopoDS_Face], axis: gp_Dir, tolerance: float = 1e-6) -> bool:
+    """
+    Vérifie si face est en dessous de n'importe quelle autre face dans other_faces
+    selon l'axe donné, avec chevauchement des projections.
+    
+    Les faces doivent appartenir au même objet (c'est la responsabilité de l'appelant
+    de passer uniquement des faces du même objet).
+    
+    Args:
+        face: TopoDS_Face - la face à tester
+        other_faces: List[TopoDS_Face] - liste des autres faces (du même objet)
+        axis: gp_Dir - l'axe selon lequel vérifier (peut être n'importe quelle direction)
+        tolerance: Tolérance numérique pour les comparaisons
+        
+    Returns:
+        bool: True si face est en dessous d'au moins une face dans other_faces
+    """
+    for other_face in other_faces:
+        if is_face_below(face, other_face, axis, tolerance):
+            return True
+    return False
+

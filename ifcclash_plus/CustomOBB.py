@@ -2,7 +2,7 @@ from OCC.Core.Bnd import Bnd_Box, Bnd_OBB
 from OCC.Core.BRepBndLib import brepbndlib
 from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_MakeEdge
 from OCC.Core.gp import gp_Ax3, gp_Pnt, gp_Dir, gp_Trsf, gp_XYZ, gp_Vec
-from OCC.Core.TopoDS import TopoDS_Compound, TopoDS_Shell, TopoDS_Solid
+from OCC.Core.TopoDS import TopoDS_Compound, TopoDS_Shell, TopoDS_Solid, TopoDS_Face
 from OCC.Core.BRep import BRep_Builder
 from OCC.Core.BRepMesh import BRepMesh_IncrementalMesh
 from OCC.Core.BRep import BRep_Tool
@@ -13,7 +13,7 @@ import ifcopenshell.util.shape
 import ifcopenshell.geom
 import ifcopenshell.ifcopenshell_wrapper as W
 
-from typing import Literal
+from typing import Literal, List
 import numpy as np
 from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_MakePolygon,BRepBuilderAPI_MakeFace
 
@@ -387,6 +387,89 @@ def create_obb_from_verts_withOCC(geom:W.Triangulation) -> "Custom_OBB":
     # Utiliser ReBuild pour créer l'OBB à partir des points
     obb.ReBuild(points_array)
 
+    return obb
+
+
+def create_obb_from_faces(faces: List[TopoDS_Face]) -> "Custom_OBB":
+    """
+    Crée une OBB (Oriented Bounding Box) à partir d'une liste de faces TopoDS_Face.
+    
+    Cette fonction utilise l'analyse en composantes principales (PCA) pour calculer
+    l'OBB optimale qui englobe toutes les faces fournies.
+    
+    Args:
+        faces: Liste de TopoDS_Face à englober
+    
+    Returns:
+        Custom_OBB: Une OBB représentant la boîte englobante orientée
+    """
+    # Collecter tous les sommets de toutes les faces
+    points = []
+    
+    for face in faces:
+        # Utiliser l'explorateur de sommets pour cette face
+        from OCC.Core.TopExp import TopExp_Explorer
+        from OCC.Core.TopAbs import TopAbs_VERTEX
+        
+        vertex_explorer = TopExp_Explorer(face, TopAbs_VERTEX)
+        while vertex_explorer.More():
+            vertex = vertex_explorer.Current()
+            pnt = BRep_Tool.Pnt(vertex)
+            points.append([pnt.X(), pnt.Y(), pnt.Z()])
+            vertex_explorer.Next()
+    
+    if len(points) < 3:
+        # Si pas assez de points, essayer d'utiliser la triangulation
+        for face in faces:
+            location = face.Location()
+            triangulation = BRep_Tool.Triangulation(face, location)
+            
+            if triangulation is not None:
+                trsf = location.Transformation()
+                has_transformation = not location.IsIdentity()
+                
+                for i in range(1, triangulation.NbNodes() + 1):
+                    node = triangulation.Node(i)
+                    if has_transformation:
+                        node = node.Transformed(trsf)
+                    points.append([node.X(), node.Y(), node.Z()])
+    
+    if len(points) < 3:
+        raise ValueError(f"Pas assez de points pour calculer une OBB. Seulement {len(points)} points trouvés.")
+    
+    pts = np.array(points)
+    
+    # Calculer le centroïde
+    centroid = pts.mean(axis=0)
+    
+    # Centrer les points
+    centered = pts - centroid
+    
+    # Calculer la matrice de covariance
+    cov = np.cov(centered.T)
+    
+    # Calculer les vecteurs propres et les valeurs propres
+    eigenvalues, eigenvectors = np.linalg.eigh(cov)
+    
+    # Trier par ordre décroissant des valeurs propres
+    order = np.argsort(eigenvalues)[::-1]
+    axes = eigenvectors[:, order]
+    
+    # Projection et calcul des demi-tailles
+    projected = centered @ axes
+    min_proj = projected.min(axis=0)
+    max_proj = projected.max(axis=0)
+    
+    half_sizes = (max_proj - min_proj) / 2.0
+    local_center = centroid + axes @ ((min_proj + max_proj) / 2.0)
+    
+    # Construction de l'OBB
+    obb = Custom_OBB()
+    obb.SetCenter(gp_Pnt(*local_center))
+    obb.SetXComponent(gp_Dir(*axes[:, 0]), half_sizes[0])
+    obb.SetYComponent(gp_Dir(*axes[:, 1]), half_sizes[1])
+    obb.SetZComponent(gp_Dir(*axes[:, 2]), half_sizes[2])
+    
     return obb
 
 
