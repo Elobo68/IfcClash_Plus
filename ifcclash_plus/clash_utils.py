@@ -30,6 +30,8 @@ from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_MakeFace, BRepBuilderAPI_Make
 from OCC.Core.TopoDS import TopoDS_Shell, TopoDS_Face
 from OCC.Core.BRep import BRep_Builder
 from OCC.Core.BRepCheck import BRepCheck_Analyzer
+from OCC.Core.TopoDS import TopoDS_Shape
+from OCC.Core.BRepAdaptor import BRepAdaptor_Surface
 
 
 AXIS_LITERAL = Literal["X", "Y", "Z"]
@@ -895,28 +897,279 @@ def min_distance_two_faces(ListPoint1, ListPoint2):
     
     raise RuntimeError("Fail to calculate distance")
 
-# ── Exemple d'utilisation ────────────────────────────────────────────────────
 
-if __name__ == "__main__":
-    from OCC.Core.BRepPrimAPI import BRepPrimAPI_MakeBox
-    from OCC.Core.gp import gp_Dir
 
-    # Création d'une boîte de test
-    box = BRepPrimAPI_MakeBox(10.0, 10.0, 10.0).Shape()
-
-    # Direction : on cherche les faces visibles depuis le dessus (+Z)
-    direction = gp_Dir(0.0, 0.0, 1.0)
-
-    faces = get_visible_faces_in_direction(
-        shape=box,
-        direction=direction,
-        angle_tolerance_deg=45.0,
-        n_ray_samples=3,
+#### Function for Above Rule
+def create_view_plane(
+    shape: TopoDS_Shape,
+    direction: gp_Dir,
+    distance: float = 100.0,
+    size_factor: float = 2.0
+) -> TopoDS_Face:
+    """
+    Crée un plan perpendiculaire à la direction, placé à une distance donnée derrière la géométrie.
+    
+    Ce plan sert de surface de projection pour le lancer de rayons.
+    
+    Args:
+        shape: La géométrie à analyser
+        direction: Direction de vue (gp_Dir) - depuis le point de vue vers la scène
+        distance: Distance à laquelle placer le plan derrière la géométrie (défaut: 100.0)
+        size_factor: Facteur de taille du plan par rapport à la boîte englobante (défaut: 2.0)
+    
+    Returns:
+        TopoDS_Face: Une face plane rectangulaire perpendiculaire à la direction
+    """
+    from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_MakeFace, BRepBuilderAPI_MakePolygon
+    
+    # Calculer la boîte englobante de la shape
+    bbox = Bnd_Box()
+    brepbndlib.Add(shape, bbox)
+    
+    # Obtenir les coins min et max
+    corner_min = bbox.CornerMin()
+    corner_max = bbox.CornerMax()
+    
+    # Calculer le centre de la géométrie
+    center = gp_Pnt(
+        (corner_min.X() + corner_max.X()) / 2.0,
+        (corner_min.Y() + corner_max.Y()) / 2.0,
+        (corner_min.Z() + corner_max.Z()) / 2.0
     )
+    
+    # Calculer les dimensions de la boîte englobante
+    width = corner_max.X() - corner_min.X()
+    height = corner_max.Y() - corner_min.Y()
+    depth = corner_max.Z() - corner_min.Z()
+    
+    # Calculer la taille du plan (suffisamment grand pour couvrir la géométrie)
+    max_dim = max(width, height, depth)
+    plane_size = max_dim * size_factor
+    
+    # Déplacer le centre dans la direction inverse pour placer le plan derrière
+    # La direction pointe VERS la scène, donc on va dans la direction opposée
+    offset_vec = gp_Vec(direction.X(), direction.Y(), direction.Z())
+    offset_vec.Multiply(-distance)  # Direction inverse
+    plane_center = gp_Pnt(
+        center.X() + offset_vec.X(),
+        center.Y() + offset_vec.Y(),
+        center.Z() + offset_vec.Z()
+    )
+    
+    # Trouver deux vecteurs perpendiculaires à la direction pour définir le plan
+    dir_vec = gp_Vec(direction.X(), direction.Y(), direction.Z())
+    
+    # Trouver un premier vecteur perpendiculaire
+    if abs(dir_vec.X()) < 0.5:
+        base_x = gp_Vec(1, 0, 0)
+    else:
+        base_x = gp_Vec(0, 1, 0)
+    
+    # Orthogonaliser base_x par rapport à dir_vec
+    dot_x_dir = base_x.Dot(dir_vec)
+    dir_squared = dir_vec.Dot(dir_vec)
+    if dir_squared > 1e-10:
+        factor = dot_x_dir / dir_squared
+        dir_scaled = gp_Vec(dir_vec.X() * factor, dir_vec.Y() * factor, dir_vec.Z() * factor)
+        base_x.Subtract(dir_scaled)
+    
+    # Normaliser base_x
+    base_x_mag = base_x.Magnitude()
+    if base_x_mag > 1e-10:
+        base_x.Divide(base_x_mag)
+    
+    # Calculer base_y = dir_vec × base_x
+    base_y = dir_vec.Crossed(base_x)
+    base_y_mag = base_y.Magnitude()
+    if base_y_mag > 1e-10:
+        base_y.Divide(base_y_mag)
+    
+    # Calculer les 4 coins du plan rectangulaire
+    half_size = plane_size / 2.0
+    
+    corner1 = gp_Pnt(
+        plane_center.X() - base_x.X() * half_size - base_y.X() * half_size,
+        plane_center.Y() - base_x.Y() * half_size - base_y.Y() * half_size,
+        plane_center.Z() - base_x.Z() * half_size - base_y.Z() * half_size
+    )
+    corner2 = gp_Pnt(
+        plane_center.X() + base_x.X() * half_size - base_y.X() * half_size,
+        plane_center.Y() + base_x.Y() * half_size - base_y.Y() * half_size,
+        plane_center.Z() + base_x.Z() * half_size - base_y.Z() * half_size
+    )
+    corner3 = gp_Pnt(
+        plane_center.X() + base_x.X() * half_size + base_y.X() * half_size,
+        plane_center.Y() + base_x.Y() * half_size + base_y.Y() * half_size,
+        plane_center.Z() + base_x.Z() * half_size + base_y.Z() * half_size
+    )
+    corner4 = gp_Pnt(
+        plane_center.X() - base_x.X() * half_size + base_y.X() * half_size,
+        plane_center.Y() - base_x.Y() * half_size + base_y.Y() * half_size,
+        plane_center.Z() - base_x.Z() * half_size + base_y.Z() * half_size
+    )
+    
+    # Créer la face rectangulaire
+    polygon = BRepBuilderAPI_MakePolygon()
+    polygon.Add(corner1)
+    polygon.Add(corner2)
+    polygon.Add(corner3)
+    polygon.Add(corner4)
+    polygon.Close()
+    
+    face = BRepBuilderAPI_MakeFace(polygon.Wire())
+    if face.IsDone():
+        return face.Face()
+    
+    raise RuntimeError("Failed to create view plane")
 
-    print(f"Faces visibles dans la direction {direction.X(), direction.Y(), direction.Z()} : {len(faces)}")
-    for i, f in enumerate(faces):
-        center = get_face_center(f)
-        normal = get_face_normal(f)
-        print(f"  Face {i}: centre=({center.X():.2f}, {center.Y():.2f}, {center.Z():.2f}), "
-              f"normale=({normal.X():.2f}, {normal.Y():.2f}, {normal.Z():.2f})")
+def sample_points_on_face(face: TopoDS_Face, n_samples: int = 3) -> List[gp_Pnt]:
+    """
+    Échantillonne des points uniformément sur une face.
+    
+    Args:
+        face: La face à échantillonner
+        n_samples: Nombre de subdivisions par dimension (défaut: 3 → 9 points)
+    
+    Returns:
+        Liste de points gp_Pnt échantillonnés sur la face
+    """
+    surface = BRepAdaptor_Surface(face)
+    
+    u_min = surface.FirstUParameter()
+    u_max = surface.LastUParameter()
+    v_min = surface.FirstVParameter()
+    v_max = surface.LastVParameter()
+    
+    points = []
+    for i in range(n_samples):
+        for j in range(n_samples):
+            u = u_min + (u_max - u_min) * (i + 0.5) / n_samples
+            v = v_min + (v_max - v_min) * (j + 0.5) / n_samples
+            
+            pnt = gp_Pnt()
+            surface.D0(u, v, pnt)
+            points.append(pnt)
+    
+    return points
+
+def get_faces_visible_from_direction_with_plane(
+    shape: TopoDS_Shape,
+    direction: gp_Dir,
+    angle_tolerance_deg: float = 45.0,
+    plane_distance: float = 100.0,
+    plane_size_factor: float = 1.0,
+    n_ray_samples: int = 9
+) -> dict:
+    """
+    Détermine les faces visibles depuis une direction en créant un plan perpendiculaire
+    et en tirant des rayons depuis ce plan vers la géométrie.
+    
+    Cette fonction simule un point de vue lointain : les rayons sont tirés depuis un plan
+    situé derrière l'objet (dans la direction opposée à la direction de vue) vers l'objet.
+    
+    Args:
+        shape: La géométrie à analyser
+        direction: Direction de vue (gp_Dir) - depuis le point de vue vers la scène
+        angle_tolerance_deg: Tolérance angulaire pour considérer une face comme orientée
+                            vers la direction (défaut: 45.0 degrés)
+        plane_distance: Distance à laquelle placer le plan derrière la géométrie (défaut: 100.0)
+        plane_size_factor: Facteur de taille du plan par rapport à la boîte englobante (défaut: 2.0)
+        n_ray_samples: Nombre de subdivisions par axe pour le lancer de rayons (défaut: 3 → 9 rayons)
+    
+    Returns:
+        dict contenant:
+        - visible_faces: Liste des TopoDS_Face visibles (intersectées par les rayons)
+        - plane: Le plan perpendiculaire créé (TopoDS_Face)
+        - all_faces_toward_direction: Toutes les faces orientées vers la direction
+        - occluded_faces: Faces orientées vers la direction mais non visibles (masquées)
+        - hit_count: Dictionnaire {face: nombre_de_rayons_qui_ont_intersecté}
+    """
+    import math
+    from OCC.Core.BRepIntCurveSurface import BRepIntCurveSurface_Inter
+    from OCC.Core.gp import gp_Lin
+    from OCC.Core.TopExp import TopExp_Explorer
+    from OCC.Core.TopAbs import TopAbs_FACE
+    from OCC.Core.TopoDS import topods
+    
+    # Étape 1: Créer le plan perpendiculaire
+    plane = create_view_plane(shape, direction, plane_distance, plane_size_factor)
+    
+    # Étape 2: Échantillonner des points sur le plan
+    sample_points = sample_points_on_face(plane, n_ray_samples)
+    
+    # Étape 3: Trouver toutes les faces orientées vers la direction
+    all_faces_toward_direction = []
+    explorer = TopExp_Explorer(shape, TopAbs_FACE)
+    
+    while explorer.More():
+        face = topods.Face(explorer.Current())
+        if is_face_oriented_toward_direction(face, direction, angle_tolerance_deg):
+            all_faces_toward_direction.append(face)
+        explorer.Next()
+    
+    # Étape 4: Tirer des rayons depuis chaque point du plan et collecter les intersections
+    hit_count = {}  # Compteur de rayons par face
+    
+    for point in sample_points:
+        # Créer un rayon depuis le point dans la direction (vers la scène)
+        ray = gp_Lin(point, direction)
+        
+        # Trouver les intersections avec la shape
+        inter = BRepIntCurveSurface_Inter()
+        inter.Init(shape, ray, 1e-7)
+        
+        first_hit_face = None
+        first_hit_distance = float('inf')
+        
+        while inter.More():
+            t = inter.W()
+            if t < 0:
+                inter.Next()
+                continue
+            
+            hit_face = inter.Face()
+            
+            # Calculer le point d'intersection sur le rayon
+            # point_on_ray = ray.Location() + t * ray.Direction()
+            ray_location = ray.Location()
+            ray_dir = ray.Direction()
+            hit_point = gp_Pnt(
+                ray_location.X() + t * ray_dir.X(),
+                ray_location.Y() + t * ray_dir.Y(),
+                ray_location.Z() + t * ray_dir.Z()
+            )
+            
+            # Calculer la distance du point de départ du rayon au point d'intersection
+            distance = point.Distance(hit_point)
+            
+            if distance < first_hit_distance:
+                first_hit_distance = distance
+                first_hit_face = hit_face
+            
+            inter.Next()
+        
+        # Si on a trouvé une face intersectée, incrémenter son compteur
+        if first_hit_face is not None:
+            face_key = first_hit_face
+            if face_key in hit_count:
+                hit_count[face_key] += 1
+            else:
+                hit_count[face_key] = 1
+    
+    # Étape 5: Classer les faces
+    visible_faces = list(hit_count.keys())
+    
+    # Trouver les faces masquées : orientées vers la direction mais non intersectées
+    occluded_faces = []
+    for face in all_faces_toward_direction:
+        if face not in hit_count:
+            occluded_faces.append(face)
+    
+    return {
+        'visible_faces': visible_faces,
+        'plane': plane,
+        'all_faces_toward_direction': all_faces_toward_direction,
+        'occluded_faces': occluded_faces,
+        'hit_count': hit_count
+    }
+

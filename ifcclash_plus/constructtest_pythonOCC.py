@@ -5,7 +5,7 @@ Fonctions principales :
 - get_faces_toward_direction : obtient les faces orientées vers une direction
 - is_face_occluded : vérifie si une face est masquée (version rapide avec boîtes englobantes)
 - is_face_occluded_precise : vérifie si une face est masquée (version précise avec projection 2D)
-- is_face_below : vérifie si une face est en dessous d'une autre selon un axe donné
+- is_face_below : vérifie si une face est en dessous d'une autre selon un axe donné (avec 50% de recouvrement minimum)
 - is_face_below_any : vérifie si une face est en dessous de n'importe quelle autre face d'une liste
 
 Fonctions helpers :
@@ -13,6 +13,7 @@ Fonctions helpers :
 - project_on_axis : projette des points sur un axe
 - project_on_plane : projette des points sur un plan perpendiculaire à un axe
 - rectangles_overlap : vérifie si deux rectangles 2D se chevauchent
+- rectangles_overlap_50percent : vérifie si deux rectangles 2D se chevauchent avec au moins 50% de recouvrement
 """
 
 import numpy as np
@@ -111,6 +112,51 @@ def rectangles_overlap(rect1, rect2) -> bool:
                 rect1[3] < rect2[2] or rect2[3] < rect1[2])
 
 
+def rectangles_overlap_50percent(rect1, rect2, threshold=0.5) -> bool:
+    """
+    Vérifie si deux rectangles axis-aligned se chevauchent avec au moins threshold% de recouvrement.
+    Le recouvrement est calculé par rapport à la plus petite des deux surfaces.
+    
+    Args:
+        rect1: Tuple (min_x, max_x, min_y, max_y)
+        rect2: Tuple (min_x, max_x, min_y, max_y)
+        threshold: Seuil de recouvrement (0.0 à 1.0), default 0.5 pour 50%
+        
+    Returns:
+        bool: True si le recouvrement est >= threshold
+    """
+    # Vérifier d'abord s'il y a chevauchement
+    if not rectangles_overlap(rect1, rect2):
+        return False
+    
+    # Calculer l'intersection
+    inter_min_x = max(rect1[0], rect2[0])
+    inter_max_x = min(rect1[1], rect2[1])
+    inter_min_y = max(rect1[2], rect2[2])
+    inter_max_y = min(rect1[3], rect2[3])
+    
+    # Surface d'intersection
+    inter_width = inter_max_x - inter_min_x
+    inter_height = inter_max_y - inter_min_y
+    inter_area = inter_width * inter_height
+    
+    if inter_area <= 0:
+        return False
+    
+    # Surfaces des rectangles
+    rect1_area = (rect1[1] - rect1[0]) * (rect1[3] - rect1[2])
+    rect2_area = (rect2[1] - rect2[0]) * (rect2[3] - rect2[2])
+    
+    # Vérifier que le recouvrement représente au moins threshold de chaque rectangle
+    # Utiliser la plus petite surface comme référence
+    min_area = min(rect1_area, rect2_area)
+    
+    if min_area <= 0:
+        return False
+    
+    return (inter_area / min_area) >= threshold
+
+
 def project_on_plane(points: List[gp_Pnt], axis: gp_Dir, origin: gp_Pnt = None) -> Tuple[List[Tuple[float, float]], gp_Vec, gp_Vec]:
     """
     Projette des points sur le plan perpendiculaire à axis.
@@ -170,7 +216,8 @@ def is_face_below(face: TopoDS_Face, other_face: TopoDS_Face, axis: gp_Dir, tole
     avec chevauchement des projections sur le plan perpendiculaire.
     
     Une face est considérée comme "en dessous" si (Option C) :
-    1. Leurs projections sur le plan perpendiculaire à l'axe se chevauchent
+    1. Leurs projections sur le plan perpendiculaire à l'axe se chevauchent 
+       avec au moins 50% de recouvrement par rapport à la plus petite surface
     2. Le centre de face est en dessous du centre de other_face selon l'axe
     
     Args:
@@ -180,7 +227,7 @@ def is_face_below(face: TopoDS_Face, other_face: TopoDS_Face, axis: gp_Dir, tole
         tolerance: Tolérance numérique pour les comparaisons
         
     Returns:
-        bool: True si face est en dessous de other_face selon axis avec chevauchement
+        bool: True si face est en dessous de other_face selon axis avec chevauchement >= 50%
     """
     # Éviter la comparaison avec soi-même
     if face.IsSame(other_face):
@@ -236,8 +283,8 @@ def is_face_below(face: TopoDS_Face, other_face: TopoDS_Face, axis: gp_Dir, tole
         max(p[1] for p in other_2d)
     )
     
-    # Vérifier le chevauchement 2D
-    return rectangles_overlap(face_rect, other_rect)
+    # Vérifier le chevauchement 2D avec au moins 50% de recouvrement
+    return rectangles_overlap_50percent(face_rect, other_rect, threshold=0.9)
 
 
 def is_face_below_any(face: TopoDS_Face, other_faces: List[TopoDS_Face], axis: gp_Dir, tolerance: float = 1e-6) -> bool:
@@ -651,7 +698,8 @@ if __name__ == "__main__":
     Chemin="/home/jocelin/Documents/200 - IFC/IfcSampleFiles-main/Ifc2x3_Duplex_Architecture.ifc"
     file=ifcopenshell.open(Chemin)
 
-    objects=file.by_type("IfcFurnishingElement")
+    objects=file.by_type("IfcWallStandardCase")
+    #objects=file.by_type("IfcFurnishingElement")
     the_settings=ifcopenshell.geom.settings()
     the_settings.set("use-python-opencascade", True)
     iterator = ifcopenshell.geom.iterator(
@@ -666,7 +714,7 @@ if __name__ == "__main__":
     
     # Liste pour stocker toutes les faces visibles (orientées vers la direction)
     
-    direction_to_check=gp_Dir(0.0, 0.0, 1.0)
+    direction_to_check=gp_Dir(1.0, 0.0, 0.0)
     
     if iterator.initialize():
         # Première passe : collecter toutes les faces visibles
