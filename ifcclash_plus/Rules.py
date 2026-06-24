@@ -811,7 +811,7 @@ class Above(RuleCheckTwoObjects):
         self.type = above_type
         self.tolerance: float = tolerance
         self.geom_settings = ifcopenshell.geom.settings()
-        #self.geom_settings.set(self.geom_settings.USE_PYTHON_OPENCASCADE, True)
+        self.geom_settings.set(self.geom_settings.USE_PYTHON_OPENCASCADE, True)
 
     def run(self, state="Final"):
         self.tree = ifcopenshell.geom.tree()
@@ -822,14 +822,14 @@ class Above(RuleCheckTwoObjects):
         targets_data = []
 
         if "MinTo" in self.type:
-            source_direction = (0.0, 0.0, -1.0)
+            source_direction = gp_Dir(0.0, 0.0, -1.0)
         else:
-            source_direction = (0.0, 0.0, 1.0)
+            source_direction = gp_Dir(0.0, 0.0, 1.0)
 
         if "ToMin" in self.type:
-            target_direction = (0.0, 0.0, -1.0)
+            target_direction = gp_Dir(0.0, 0.0, -1.0)
         else:
-            target_direction = (0.0, 0.0, 1.0)
+            target_direction = gp_Dir(0.0, 0.0, 1.0)
 
 
         #todo This is a slow way, you check every combinaison. We could reduce it with a BB clash before to narrow the faces.
@@ -852,11 +852,13 @@ class Above(RuleCheckTwoObjects):
                     
                     shape = iterator.get()
                     geom = shape.geometry
-                    entity = ifc_file.by_id(shape.id)
+                    entity = ifc_file.by_id(shape.data.id)
 
-                    extrem_faces = clash_utils.get_extreme_faces(geometry=geom, direction=source_direction)
-                    vertices = get_vertices(geom)
-                    dict = {"entity": entity,"vertices": vertices,"extrem_faces": extrem_faces}
+                    extrem_faces = clash_utils.get_faces_visible_from_direction_with_plane(shape=geom, direction=source_direction)
+                    obb = create_obb_from_TopoDs_Shape(geom) #Why not use 
+                    clash_obb = obb.detach_top_by_extrude(self.tolerance)
+
+                    dict = {"entity": entity,"extrem_faces": extrem_faces,"obb":clash_obb}
                     sources_data.append(dict)
 
                     if not iterator.next():
@@ -876,11 +878,11 @@ class Above(RuleCheckTwoObjects):
                 while True:
                     shape = iterator.get()
                     geom = shape.geometry
-                    entity = ifc_file.by_id(shape.id)
+                    entity = ifc_file.by_id(shape.data.id)
 
-                    extrem_faces = clash_utils.get_extreme_faces(geometry=geom, direction=target_direction)
-                    vertices = get_vertices(geom)
-                    dict = {"entity": entity,"vertices": vertices,"extrem_faces": extrem_faces}
+                    extrem_faces = clash_utils.get_faces_visible_from_direction_with_plane(shape=geom, direction=target_direction)
+                    obb = create_obb_from_TopoDs_Shape(geom) 
+                    dict = {"entity": entity,"extrem_faces": extrem_faces,"obb":obb}
                     targets_data.append(dict)
 
                     if not iterator.next():
@@ -891,59 +893,33 @@ class Above(RuleCheckTwoObjects):
         # Check if part of extrem faces are close to each other
         for source in sources_data:
             for target in targets_data:
+                    
+                if source["obb"].IsOut(target["obb"]):
+                    continue
 
-                for source_face in source["extrem_faces"]:
-                    s0 = source["vertices"][source_face[0]]
-                    s1 = source["vertices"][source_face[1]]
-                    s2 = source["vertices"][source_face[2]]
-                    source_center = (s0 + s1 + s2) / 3
-                    s = [s0, s1, s2]
 
-                    min_distance_found = None
-                    selected_result = None
-        #todo add an OBB check to see if the two objects are close to each other.
+                source_geom = source["extrem_faces"]
+                target_geom = target["extrem_faces"]
 
-                    for target_face in target["extrem_faces"]:
-                        t0 = target["vertices"][target_face[0]]
-                        t1 = target["vertices"][target_face[1]]
-                        t2 = target["vertices"][target_face[2]]
-                        target_center = (t0 + t1 + t2) / 3
+                for source_face in source_geom:
+                    for target_face in target_geom:
 
-                        t = [t0, t1, t2]
+                        # Calculate distance between OBB and geometry
+                        dist_tool = BRepExtrema_DistShapeShape()
+                        dist_tool.LoadS1(source_face)
+                        dist_tool.LoadS2(target_face)
+                        dist_tool.Perform()
+                        distance = dist_tool.Value()
 
-                        dist = clash_utils.min_distance_two_faces(s, t)
-
-                        # The target face must be above the source.
-                        check_above = (source_center - target_center)[2]
-                        if check_above > 0:
-                            continue
-
-                        # @todo If the object is above but with an offset in x or y, it will be detected as well.
-
-                        # we only select the worst case scenario.
-                        if dist["distance"] < self.tolerance:
-                            if min_distance_found is None:
-                                min_distance_found = dist["distance"]
-                                selected_result = {
-                                    "source": source["entity"],
-                                    "target": target["entity"],
-                                }
-                                continue
-                            if min_distance_found < dist["distance"]:
-                                min_distance_found = dist["distance"]
-                                selected_result = {
-                                    "source": source["entity"],
-                                    "target": target["entity"],
-                                }
-
-                    if selected_result is not None:
-                        list_result.append(
-                            ClashResultTwoObjects(
-                                source=selected_result["source"],
-                                target=selected_result["target"],
-                                state=True,
+                        #@todo Improve to get the only the first result, or the best one.
+                        if distance<1e-6:
+                            list_result.append(
+                                ClashResultTwoObjects(
+                                    source=source["entity"],
+                                    target=target["entity"],
+                                    state=True,
+                                )
                             )
-                        )
 
         self.result = list_result
 
