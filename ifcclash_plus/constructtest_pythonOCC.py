@@ -8,6 +8,11 @@ import ifcopenshell
 import trimesh
 import multiprocessing
 import ifcopenshell.geom
+from OCC.Core.AIS import AIS_Shape
+from OCC.Core.Quantity import Quantity_Color, Quantity_TOC_RGB
+from OCC.Display.SimpleGui import init_display
+from OCC.Core.AIS import AIS_Shape
+from OCC.Core.Quantity import Quantity_Color, Quantity_TOC_RGB
 
 
 def vertices_to_occ_shape(vertices, faces):
@@ -84,8 +89,6 @@ def min_distance_between_meshes(vertices1, faces1, vertices2, faces2):
         raise RuntimeError("Échec du calcul de distance")
 
 
-
-
 if __name__ == "__main__":
     Chemin="/home/jocelin/Documents/200 - IFC/IfcSampleFiles-main/Ifc2x3_Duplex_Architecture.ifc"
     file=ifcopenshell.open(Chemin)
@@ -99,16 +102,24 @@ if __name__ == "__main__":
                 multiprocessing.cpu_count(),
                 include=objects,
             )
-    
 
 
+    display, start_display, add_menu, add_function = init_display()
     if iterator.initialize():
+        
         while True:
             shape = iterator.get()
             geom = shape.geometry
             entity = file.by_id(shape.data.id)
 
-            print(geom)
+            ais_shape=AIS_Shape(geom)
+            green_color = Quantity_Color(0.0, 1.0, 0.0, Quantity_TOC_RGB)
+            #ais_shape.SetColor(green_color)
+            ais_shape.SetTransparency(0.2)
+            display.Context.Display(ais_shape, True)
 
             if not iterator.next():
                 break
+
+    display.FitAll()
+    start_display()
