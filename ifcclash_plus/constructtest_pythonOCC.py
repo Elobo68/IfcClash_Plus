@@ -4,8 +4,10 @@ from OCC.Core.BRepExtrema import BRepExtrema_DistShapeShape
 from OCC.Core.gp import gp_Pnt
 from OCC.Core.TopoDS import TopoDS_Compound
 from OCC.Core.BRep import BRep_Builder
-
+import ifcopenshell
 import trimesh
+import multiprocessing
+import ifcopenshell.geom
 
 
 def vertices_to_occ_shape(vertices, faces):
@@ -81,36 +83,32 @@ def min_distance_between_meshes(vertices1, faces1, vertices2, faces2):
     else:
         raise RuntimeError("Échec du calcul de distance")
 
-# Exemple d'utilisation
-# Cube 1
-vertices1 = [
-    [0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0],  # Base
-    [0, 0, 1], [1, 0, 1], [1, 1, 1], [0, 1, 1]   # Haut
-]
-faces1 = [
-    [0, 1, 2], [0, 2, 3],  # Base
-    [4, 5, 6], [4, 6, 7],  # Haut
-    [0, 1, 5], [0, 5, 4],  # Face avant
-    [2, 3, 7], [2, 7, 6],  # Face arrière
-    [0, 3, 7], [0, 7, 4],  # Côté gauche
-    [1, 2, 6], [1, 6, 5]   # Côté droit
-]
 
-# Cube 2 (décalé)
-vertices2 = [
-    [2, 0, 0], [3, 0, 0], [3, 1, 0], [2, 1, 0],
-    [2, 0, 1], [3, 0, 1], [3, 1, 1], [2, 1, 1]
-]
-faces2 = [
-    [0, 1, 2], [0, 2, 3],
-    [4, 5, 6], [4, 6, 7],
-    [0, 1, 5], [0, 5, 4],
-    [2, 3, 7], [2, 7, 6],
-    [0, 3, 7], [0, 7, 4],
-    [1, 2, 6], [1, 6, 5]
-]
 
-result = min_distance_between_meshes(vertices1, faces1, vertices2, faces2)
-print(f"Distance minimale : {result['distance']:.3f}")
-print(f"Point 1 : {result['point1']}")
-print(f"Point 2 : {result['point2']}")
+
+if __name__ == "__main__":
+    Chemin="/home/jocelin/Documents/200 - IFC/IfcSampleFiles-main/Ifc2x3_Duplex_Architecture.ifc"
+    file=ifcopenshell.open(Chemin)
+
+    objects=file.by_type("IfcFurnishingElement")
+    the_settings=ifcopenshell.geom.settings()
+    the_settings.set("use-python-opencascade", True)
+    iterator = ifcopenshell.geom.iterator(
+                the_settings,
+                file,
+                multiprocessing.cpu_count(),
+                include=objects,
+            )
+    
+
+
+    if iterator.initialize():
+        while True:
+            shape = iterator.get()
+            geom = shape.geometry
+            entity = file.by_id(shape.data.id)
+
+            print(geom)
+
+            if not iterator.next():
+                break

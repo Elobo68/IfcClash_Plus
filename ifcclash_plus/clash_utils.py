@@ -874,6 +874,26 @@ def get_visible_faces_in_direction(
 
     return visible_faces
 
+def min_distance_two_faces(ListPoint1, ListPoint2):
+    face1 = triangle_to_occ_face(ListPoint1)
+    face2 = triangle_to_occ_face(ListPoint2)
+    
+    if face1 is None or face2 is None:
+        raise ValueError("Not possible to create face")
+    
+    dist_calc = BRepExtrema_DistShapeShape(face1, face2)
+    
+    if dist_calc.IsDone():
+        point1 = dist_calc.PointOnShape1(1)
+        point2 = dist_calc.PointOnShape2(1)
+        
+        return {
+            'distance': dist_calc.Value(),
+            'point1': [point1.X(), point1.Y(), point1.Z()],
+            'point2': [point2.X(), point2.Y(), point2.Z()]
+        }
+    
+    raise RuntimeError("Fail to calculate distance")
 
 # ── Exemple d'utilisation ────────────────────────────────────────────────────
 

@@ -811,7 +811,7 @@ class Above(RuleCheckTwoObjects):
         self.type = above_type
         self.tolerance: float = tolerance
         self.geom_settings = ifcopenshell.geom.settings()
-        self.geom_settings.set(self.geom_settings.USE_PYTHON_OPENCASCADE, True)
+        #self.geom_settings.set(self.geom_settings.USE_PYTHON_OPENCASCADE, True)
 
     def run(self, state="Final"):
         self.tree = ifcopenshell.geom.tree()
@@ -852,13 +852,11 @@ class Above(RuleCheckTwoObjects):
                     
                     shape = iterator.get()
                     geom = shape.geometry
-                    entity = ifc_file.by_id(shape.data.id)
+                    entity = ifc_file.by_id(shape.id)
 
                     extrem_faces = clash_utils.get_extreme_faces(geometry=geom, direction=source_direction)
                     vertices = get_vertices(geom)
-                    obb = create_obb_from_TopoDs_Shape(geom)
-                    clash_obb = obb.detach_top_by_extrude(self.tolerance)
-                    dict = {"entity": entity,"vertices": vertices,"extrem_faces": extrem_faces,"obb":clash_obb}
+                    dict = {"entity": entity,"vertices": vertices,"extrem_faces": extrem_faces}
                     sources_data.append(dict)
 
                     if not iterator.next():
@@ -878,12 +876,11 @@ class Above(RuleCheckTwoObjects):
                 while True:
                     shape = iterator.get()
                     geom = shape.geometry
-                    entity = ifc_file.by_id(shape.data.id)
+                    entity = ifc_file.by_id(shape.id)
 
                     extrem_faces = clash_utils.get_extreme_faces(geometry=geom, direction=target_direction)
                     vertices = get_vertices(geom)
-                    obb = create_obb_from_TopoDs_Shape(geom)
-                    dict = {"entity": entity,"vertices": vertices,"extrem_faces": extrem_faces,"obb":obb}
+                    dict = {"entity": entity,"vertices": vertices,"extrem_faces": extrem_faces}
                     targets_data.append(dict)
 
                     if not iterator.next():
@@ -894,9 +891,6 @@ class Above(RuleCheckTwoObjects):
         # Check if part of extrem faces are close to each other
         for source in sources_data:
             for target in targets_data:
-
-                if source["obb"].IsOut(target["obb"]):
-                    continue
 
                 for source_face in source["extrem_faces"]:
                     s0 = source["vertices"][source_face[0]]
