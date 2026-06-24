@@ -228,6 +228,45 @@ def create_obb_from_geom_verts(geom:W.Triangulation) -> "Custom_OBB":
 
     return obb
 
+def create_aabb_from_list_of_faces(list_of_faces,vertices) -> "Custom_OBB":
+    """
+
+    """
+    from OCC.Core.TColgp import TColgp_Array1OfPnt
+
+    theobb = Bnd_OBB()
+    list_of_points=[]
+    #@todo clean this
+    
+    for source_face in list_of_faces:
+        s0 = vertices[source_face[0]]
+        s1 = vertices[source_face[1]]
+        s2 = vertices[source_face[2]]
+
+        g0=gp_Pnt(s0[0],s0[1],s0[2])
+        g1=gp_Pnt(s1[0],s1[1],s1[2])
+        g2=gp_Pnt(s2[0],s2[1],s2[2])
+
+        list_of_points.append(g0)
+        list_of_points.append(g1)
+        list_of_points.append(g2)
+        theobb.Add(g0)
+        theobb.Add(g1)
+        theobb.Add(g2)
+        print(s0)
+        break
+        
+    return theobb
+    """
+    tcolgp=TColgp_Array1OfPnt(1,len(list_of_points))
+    for i, point in enumerate(list_of_points, start=1):
+        tcolgp.SetValue(i, point)
+
+    theobb=Custom_OBB.ReBuild(tcolgp)
+    """
+
+
+
 
 def create_obb_from_TopoDs_Shape(shape:TopoDS_Compound) -> "Custom_OBB":
     """
