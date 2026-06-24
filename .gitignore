@@ -1,4 +1,5 @@
 
+*.pyc
 .obsidian/app.json
 .obsidian/appearance.json
 .obsidian/backlink.json
@@ -26,12 +27,6 @@ ifcclash_plus/__pycache__/__init__.cpython-312.pyc
 /ifcclash_plus/__pycache__
 ifcclash_plus/__pycache__/Rules.cpython-312.pyc
 /tests/__pycache__
-/ifcclash_plus/__pycache__
-/ifcclash_plus/__pycache__
-/ifcclash_plus/__pycache__
-/ifcclash_plus/__pycache__
-*.pyc
-*.pyc
 /ifcclash_plus/__pycache__
 ifcclash_plus/__pycache__/clash_utils.cpython-314.pyc
 ifcclash_plus/__pycache__/RuleClass.cpython-314.pyc
