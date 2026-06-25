@@ -1007,7 +1007,7 @@ class Above(RuleCheckTwoObjects):
                         pt_source=dist_tool.PointOnShape1(i)
                         pt_target=dist_tool.PointOnShape2(i)
 
-                        if not pt_source.Z()<pt_target.Z():
+                        if pt_source.Z()>pt_target.Z():
                             continue
 
                         if pt_source.X()-pt_target.X()<1e-3:
@@ -1027,9 +1027,9 @@ class Above(RuleCheckTwoObjects):
         return dict_to_return
 
 class Below(RuleCheckTwoObjects):
-    def __init__(self, source, target, above_type: BELOW_TYPE, tolerance=0.1):
+    def __init__(self, source, target, below_type: BELOW_TYPE, tolerance=0.1):
         super().__init__(source, target)
-        self.type = above_type
+        self.type = below_type
         self.tolerance: float = tolerance
         self.geom_settings = ifcopenshell.geom.settings()
         self.geom_settings.set(self.geom_settings.USE_PYTHON_OPENCASCADE, True)
@@ -1122,16 +1122,9 @@ class Below(RuleCheckTwoObjects):
 
         # Check if part of extrem faces are close to each other
         for source in sources_data:
-            flag_is_above=False
-            source_globalid=str(source["entity"].GlobalId)
 
-
-            for target in targets_data:
-                target_globalid=(target["entity"].GlobalId)
-                
-
+            for target in targets_data:               
                 if source["obb"].IsOut(target["obb"]):
-  
                     continue
 
                 source_geom = source["extrem_faces"]
@@ -1139,7 +1132,7 @@ class Below(RuleCheckTwoObjects):
                 
                 result=self._check_distance(source_geom,target_geom)
 
-                if result["is_above"]=="Right_Above":
+                if result["is_below"]=="Right_Below":
                     self.result.append(
                             ClashResultTwoObjects(
                                 source=source["entity"],
@@ -1147,7 +1140,7 @@ class Below(RuleCheckTwoObjects):
                                 state=True,
                             ))
                     continue
-                if result["is_above"]=="Too_Far":
+                if result["is_below"]=="Too_Far":
                     continue
 
 
@@ -1180,7 +1173,7 @@ class Below(RuleCheckTwoObjects):
 
 
     def _check_distance(self,list_of_source_face,list_of_target_face):
-        dict_to_return={"is_above":None,"list_of_point_on_target":[]}
+        dict_to_return={"is_below":None,"list_of_point_on_target":[]}
         for source_face in list_of_source_face:
             for target_face in list_of_target_face:
                 
@@ -1203,16 +1196,16 @@ class Below(RuleCheckTwoObjects):
 
                         if pt_source.X()-pt_target.X()<1e-3:
                             if pt_source.Y()-pt_target.Y()<1e-3: 
-                                dict_to_return["is_above"]="Right_Below"
+                                dict_to_return["is_below"]="Right_Below"
                                 return dict_to_return
  
 
                         dict_to_return["list_of_point_on_target"].append(pt_target)
 
         if dict_to_return["list_of_point_on_target"]==[]:
-            dict_to_return["is_above"]="Too_Far"
+            dict_to_return["is_below"]="Too_Far"
         else:
-            dict_to_return["is_above"]="Need_More_Check"
+            dict_to_return["is_below"]="Need_More_Check"
 
 
         return dict_to_return
