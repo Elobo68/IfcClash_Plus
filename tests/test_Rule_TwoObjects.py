@@ -171,7 +171,7 @@ class TestRules(unittest.TestCase):
         second_select.applicability = [second_facet]
 
 
-        above_rule = Below(source=first_select, target=second_select, tolerance=0.81, above_type="Below_MaxToMin")
+        above_rule = Below(source=first_select, target=second_select, tolerance=0.81, above_type="Below_MinToMax")
         above_rule.run()
 
         OneRuleFile.contains=[above_rule]

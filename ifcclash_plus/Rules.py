@@ -1026,32 +1026,32 @@ class Above(RuleCheckTwoObjects):
 
         return dict_to_return
 
-class Below(RuleCheckTwoObjects):  # @todo Check this rule
+class Below(RuleCheckTwoObjects):
     def __init__(self, source, target, above_type: BELOW_TYPE, tolerance=0.1):
         super().__init__(source, target)
         self.type = above_type
         self.tolerance: float = tolerance
-        self.geom_settings = ifcopenshell.geom.settings(USE_WORLD_COORDS=True)
+        self.geom_settings = ifcopenshell.geom.settings()
+        self.geom_settings.set(self.geom_settings.USE_PYTHON_OPENCASCADE, True)
 
     def run(self, state="Final"):
-
-        #######See Above rule before changes
+        #@todo Finish converting Above into Below Rule
         self.tree = ifcopenshell.geom.tree()
         self.select_source.run()
         self.select_target.run()
 
-        sources_faces = []
-        targets_faces = []
+        sources_data = []
+        targets_data = []
 
         if "MinTo" in self.type:
-            source_direction = (0.0, 0.0, -1.0)
+            source_direction = gp_Dir(0.0, 0.0, -1.0)
         else:
-            source_direction = (0.0, 0.0, 1.0)
+            source_direction = gp_Dir(0.0, 0.0, 1.0)
 
         if "ToMin" in self.type:
-            target_direction = (0.0, 0.0, -1.0)
+            target_direction = gp_Dir(0.0, 0.0, -1.0)
         else:
-            target_direction = (0.0, 0.0, 1.0)
+            target_direction = gp_Dir(0.0, 0.0, 1.0)
 
         # Check the extrem face of the source
         for ifc_file in self.select_source.dict_elements.keys():
@@ -1066,16 +1066,24 @@ class Below(RuleCheckTwoObjects):  # @todo Check this rule
                 while True:
                     shape = iterator.get()
                     geom = shape.geometry
-                    extrem_faces = clash_utils.get_extreme_faces(
-                        geometry=geom, direction=source_direction
+                    entity = ifc_file.by_id(shape.data.id)
+
+                    obb = create_obb_from_TopoDs_Shape(geom)
+                    clash_obb = obb.detach_bottom_by_extrude(self.tolerance)
+
+                    extrem_faces = (
+                        clash_utils.get_faces_visible_from_direction_with_plane(
+                            shape=geom, direction=source_direction
+                        )
                     )
-                    vertices = get_vertices(geom)
+                    
+
                     dict = {
-                        "entity": ifc_file.by_id(shape.id),
-                        "vertices": vertices,
-                        "extrem_faces": extrem_faces,
+                        "entity": entity,
+                        "extrem_faces": extrem_faces["visible_faces"],
+                        "obb": clash_obb,
                     }
-                    sources_faces.append(dict)
+                    sources_data.append(dict)
 
                     if not iterator.next():
                         break
@@ -1093,82 +1101,121 @@ class Below(RuleCheckTwoObjects):  # @todo Check this rule
                 while True:
                     shape = iterator.get()
                     geom = shape.geometry
-                    extrem_faces = clash_utils.get_extreme_faces(
-                        geometry=geom, direction=target_direction
+                    entity = ifc_file.by_id(shape.data.id)
+
+                    obb = create_obb_from_TopoDs_Shape(geom)
+                    extrem_faces = (
+                        clash_utils.get_faces_visible_from_direction_with_plane(
+                            shape=geom, direction=target_direction
+                        )
                     )
-                    vertices = get_vertices(geom)
+                    
                     dict = {
-                        "entity": ifc_file.by_id(shape.id),
-                        "vertices": vertices,
-                        "extrem_faces": extrem_faces,
+                        "entity": entity,
+                        "extrem_faces": extrem_faces["visible_faces"],
+                        "obb": obb,
                     }
-                    targets_faces.append(dict)
+                    targets_data.append(dict)
 
                     if not iterator.next():
                         break
 
-        list_result = []
-
         # Check if part of extrem faces are close to each other
-        for source_faces in sources_faces:
-            for target_faces in targets_faces:
-                for source_face in source_faces["extrem_faces"]:
-                    s0 = source_faces["vertices"][source_face[0]]
-                    s1 = source_faces["vertices"][source_face[1]]
-                    s2 = source_faces["vertices"][source_face[2]]
-                    source_center = (s0 + s1 + s2) / 3
-                    s = [s0, s1, s2]
+        for source in sources_data:
+            flag_is_above=False
+            source_globalid=str(source["entity"].GlobalId)
 
-                    min_distance_found = None
-                    selected_result = None
 
-                    for target_face in target_faces["extrem_faces"]:
-                        t0 = target_faces["vertices"][target_face[0]]
-                        t1 = target_faces["vertices"][target_face[1]]
-                        t2 = target_faces["vertices"][target_face[2]]
-                        target_center = (t0 + t1 + t2) / 3
+            for target in targets_data:
+                target_globalid=(target["entity"].GlobalId)
+                
 
-                        t = [t0, t1, t2]
+                if source["obb"].IsOut(target["obb"]):
+  
+                    continue
 
-                        # The target face must be below the source.
-                        check_below = (source_center - target_center)[2]
-                        if check_below < 0:
-                            continue
+                source_geom = source["extrem_faces"]
+                target_geom = target["extrem_faces"]
+                
+                result=self._check_distance(source_geom,target_geom)
 
-                        # @todo If the object is above but with an offset in x or y, it will be detected as well.
-                        dist = clash_utils.min_distance_two_faces(s, t)
-                        # we only select the worst case scenario.
-                        if dist["distance"] < self.tolerance:
-                            if min_distance_found is None:
-                                min_distance_found = dist["distance"]
-                                selected_result = {
-                                    "source": source_faces["entity"],
-                                    "target": target_faces["entity"],
-                                }
-                                continue
-                            if min_distance_found < dist["distance"]:
-                                min_distance_found = dist["distance"]
-                                selected_result = {
-                                    "source": source_faces["entity"],
-                                    "target": target_faces["entity"],
-                                }
-
-                    if selected_result is not None:
-                        list_result.append(
+                if result["is_above"]=="Right_Above":
+                    self.result.append(
                             ClashResultTwoObjects(
-                                source=selected_result["source"],
-                                target=selected_result["target"],
+                                source=source["entity"],
+                                target=target["entity"],
                                 state=True,
-                            )
-                        )
+                            ))
+                    continue
+                if result["is_above"]=="Too_Far":
+                    continue
 
-        self.result = list_result
+
+                for source_face in source_geom:
+                    for point_on_target in result["list_of_point_on_target"]:
+
+                        bottom_direction=gp_Dir(0.0, 0.0, 1.0)
+                        ray = gp_Lin(point_on_target, bottom_direction)
+        
+                        # Trouver les intersections avec la shape
+                        inter = BRepIntCurveSurface_Inter()
+                        inter.Init(source_face, ray, 1e-7)
+
+                        if inter.More():
+                            self.result.append(
+                            ClashResultTwoObjects(
+                                source=source["entity"],
+                                target=target["entity"],
+                                state=True,
+                            ))
+                            break
+                        
+
 
         if state == "Final":
             self.manage_result()
 
         if state == "Select":
             self.produce_select()
+
+
+    def _check_distance(self,list_of_source_face,list_of_target_face):
+        dict_to_return={"is_above":None,"list_of_point_on_target":[]}
+        for source_face in list_of_source_face:
+            for target_face in list_of_target_face:
+                
+                dist_tool = BRepExtrema_DistShapeShape()
+                dist_tool.LoadS1(source_face)
+                dist_tool.LoadS2(target_face)
+                dist_tool.Perform()
+                distance = dist_tool.Value()
+
+                # If they touch (distance <= tolerance), it's close enough to check if the face is exactly above.
+                if distance <= self.tolerance:
+                    
+                    #We check if the target point is exactly above the source point. 
+                    for i in range(1,dist_tool.NbSolution()):
+                        pt_source=dist_tool.PointOnShape1(i)
+                        pt_target=dist_tool.PointOnShape2(i)
+
+                        if pt_source.Z()<pt_target.Z():
+                            continue
+
+                        if pt_source.X()-pt_target.X()<1e-3:
+                            if pt_source.Y()-pt_target.Y()<1e-3: 
+                                dict_to_return["is_above"]="Right_Below"
+                                return dict_to_return
+ 
+
+                        dict_to_return["list_of_point_on_target"].append(pt_target)
+
+        if dict_to_return["list_of_point_on_target"]==[]:
+            dict_to_return["is_above"]="Too_Far"
+        else:
+            dict_to_return["is_above"]="Need_More_Check"
+
+
+        return dict_to_return
 
 
 class Template(RuleCheckTwoObjects):
