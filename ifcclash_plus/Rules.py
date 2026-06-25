@@ -934,6 +934,10 @@ class Above(RuleCheckTwoObjects):
 
                 source_geom = source["extrem_faces"]
                 target_geom = target["extrem_faces"]
+                #@todo the result is not above, the OBB is not enough to get above element. We give several time the same clash is several faces are close to each other.
+                #We can give
+                flag_is_above=False
+                list_of_close_face=[]
 
                 for source_face in source_geom:
                     for target_face in target_geom:
@@ -943,14 +947,26 @@ class Above(RuleCheckTwoObjects):
                         dist_tool.Perform()
                         distance = dist_tool.Value()
 
-                        # If they touch (distance <= tolerance), it's a clash.
+                        # If they touch (distance <= tolerance), it's close enough to check if the face is exactly above.
                         if distance <= self.tolerance:
+                            list_of_close_face.append(target_face)
+                for source_face in source_geom:
+                    for close_target_face in list_of_close_face:
+
+
+
+                        if True:
                             result = ClashResultTwoObjects(
                                 source=source["entity"],
                                 target=target["entity"],
                                 state=False,
                             )
                             self.result.append(result)
+                            flag_is_above=True
+                            break
+                    
+                    if flag_is_above:
+                        break
 
         if state == "Final":
             self.manage_result()
@@ -1322,13 +1338,7 @@ class OBB_Below(RuleCheckTwoObjects):
                 dist_tool.LoadS2(the_target_geom)
                 dist_tool.Perform()
                 distance = dist_tool.Value()
-
-                print(
-                    source_data["entity"].GlobalId,
-                    target_data["entity"].GlobalId,
-                    distance,
-                    dist_tool.InnerSolution(),
-                )
+               
 
                 # If they touch (distance <= tolerance), it's a clash.
                 if distance <= 1e-6:
