@@ -3,7 +3,7 @@ from RuleClass import (
     RuleCheckTwoObjects,
     ClashResultOneObject,
     ClashResultTwoObjects,
-    Select
+    Select,
 )
 import ifcopenshell
 import multiprocessing
@@ -14,8 +14,13 @@ from ifcopenshell.util.shape import (
 )
 import numpy as np
 from typing import Literal
-from CustomOBB import create_obb_from_TopoDs_Shape_via_pca,create_obb_with_free_z,create_obb_with_fixed_z,create_obb_from_TopoDs_Shape
-from OCC.Core.BRepExtrema import BRepExtrema_DistShapeShape,BRepExtrema_ExtFF
+from CustomOBB import (
+    create_obb_from_TopoDs_Shape_via_pca,
+    create_obb_with_free_z,
+    create_obb_with_fixed_z,
+    create_obb_from_TopoDs_Shape,
+)
+from OCC.Core.BRepExtrema import BRepExtrema_DistShapeShape, BRepExtrema_ExtFF
 import ifcopenshell.util.placement
 from OCC.Core.gp import gp_Ax3, gp_Pnt, gp_Dir, gp_Trsf, gp_XYZ, gp_Vec
 import ifcopenshell.util.shape
@@ -23,6 +28,8 @@ from construct_display_function import create_makepolygon_with_dir
 
 
 DIRECTION_METHOD = Literal["Wide", "Narrow"]
+
+
 # ===========One Object Rule
 class Volume(RuleCheckOneObject):
     from ifcopenshell.util.shape import get_volume
@@ -55,7 +62,7 @@ class Volume(RuleCheckOneObject):
                     if self.volume_min < volume < self.volume_max:
                         result = ClashResultOneObject(source=entity, state=True)
                         self.result.append(result)
-                    else:          
+                    else:
                         self.result_fail_source.append(entity)
                     if not iterator.next():
                         break
@@ -64,6 +71,7 @@ class Volume(RuleCheckOneObject):
             self.manage_result()
         else:
             self.produce_select()
+
 
 class Area(RuleCheckOneObject):
     from ifcopenshell.util.shape import get_area
@@ -96,10 +104,10 @@ class Area(RuleCheckOneObject):
                     if self.volume_min < area < self.volume_max:
                         result = ClashResultOneObject(source=entity, state=True)
                         self.result.append(result)
-                    else: #@todo How do deal with failed OneRule ?
+                    else:  # @todo How do deal with failed OneRule ?
                         ...
-                        #result = ClashResultOneObject(source=entity, state=False)
-                        #self.result.append(result)
+                        # result = ClashResultOneObject(source=entity, state=False)
+                        # self.result.append(result)
                     if not iterator.next():
                         break
 
@@ -108,14 +116,17 @@ class Area(RuleCheckOneObject):
         else:
             self.produce_select()
 
+
 TOP_OR_BOT = Literal["Top", "Bottom"]
+
+
 class TopOrBottomSurface(RuleCheckOneObject):
-    def __init__(self, source, surface_min, surface_max,top_or_bot:TOP_OR_BOT):
+    def __init__(self, source, surface_min, surface_max, top_or_bot: TOP_OR_BOT):
         super().__init__(source)
-        self.type = top_or_bot+"Surface"
+        self.type = top_or_bot + "Surface"
         self.surface_max: float = surface_max
         self.surface_min: float = surface_min
-        self.top_or_bot_method:TOP_OR_BOT = top_or_bot
+        self.top_or_bot_method: TOP_OR_BOT = top_or_bot
         self.geom_settings = ifcopenshell.geom.settings()
 
     def run(self, state="Final"):
@@ -140,13 +151,15 @@ class TopOrBottomSurface(RuleCheckOneObject):
                     shape = iterator.get()
                     geom = shape.geometry
                     entity = ifc_file.by_id(shape.id)
-                    area=clash_utils.get_extreme_faces_with_area(geom,direction=direction)["total_area"]
+                    area = clash_utils.get_extreme_faces_with_area(
+                        geom, direction=direction
+                    )["total_area"]
 
                     if self.surface_min < area < self.surface_max:
-                        print(entity,area)
+                        print(entity, area)
                         result = ClashResultOneObject(source=entity, state=True)
                         self.result.append(result)
-                    else:          
+                    else:
                         self.result_fail_source.append(entity)
 
                     if not iterator.next():
@@ -157,8 +170,9 @@ class TopOrBottomSurface(RuleCheckOneObject):
         else:
             self.produce_select()
 
+
 class LateralSurface(RuleCheckOneObject):
-    def __init__(self, source, surface_min, surface_max,direction):
+    def __init__(self, source, surface_min, surface_max, direction):
         super().__init__(source)
         self.type = "LateralSurface"
         self.surface_max: float = surface_max
@@ -166,7 +180,7 @@ class LateralSurface(RuleCheckOneObject):
         self.direction: float = direction
         self.geom_settings = ifcopenshell.geom.settings()
 
-    def run(self, state="Final"):#@todo Check if the result is trustworthy
+    def run(self, state="Final"):  # @todo Check if the result is trustworthy
 
         self.tree = ifcopenshell.geom.tree()
         self.select_source.run()
@@ -184,12 +198,14 @@ class LateralSurface(RuleCheckOneObject):
                     shape = iterator.get()
                     geom = shape.geometry
                     entity = ifc_file.by_id(shape.id)
-                    area = ifcopenshell.util.shape.get_side_area(geom, direction=self.direction, angle=45)
+                    area = ifcopenshell.util.shape.get_side_area(
+                        geom, direction=self.direction, angle=45
+                    )
 
                     if self.surface_min < area < self.surface_max:
                         result = ClashResultOneObject(source=entity, state=True)
                         self.result.append(result)
-                    else:          
+                    else:
                         self.result_fail_source.append(entity)
 
                     if not iterator.next():
@@ -200,8 +216,9 @@ class LateralSurface(RuleCheckOneObject):
         else:
             self.produce_select()
 
+
 class ProjectedSurface(RuleCheckOneObject):
-    def __init__(self, source, surface_min, surface_max,direction):
+    def __init__(self, source, surface_min, surface_max, direction):
         super().__init__(source)
         self.type = "Projected"
         self.surface_max: float = surface_max
@@ -209,7 +226,7 @@ class ProjectedSurface(RuleCheckOneObject):
         self.direction: float = direction
         self.geom_settings = ifcopenshell.geom.settings()
 
-    def run(self, state="Final"):#@todo Check if the result is trustworthy
+    def run(self, state="Final"):  # @todo Check if the result is trustworthy
 
         self.tree = ifcopenshell.geom.tree()
         self.select_source.run()
@@ -227,12 +244,14 @@ class ProjectedSurface(RuleCheckOneObject):
                     shape = iterator.get()
                     geom = shape.geometry
                     entity = ifc_file.by_id(shape.id)
-                    area = ifcopenshell.util.shape.get_footprint_area(geom, direction=self.direction)
+                    area = ifcopenshell.util.shape.get_footprint_area(
+                        geom, direction=self.direction
+                    )
 
                     if self.surface_min < area < self.surface_max:
                         result = ClashResultOneObject(source=entity, state=True)
                         self.result.append(result)
-                    else:          
+                    else:
                         self.result_fail_source.append(entity)
 
                     if not iterator.next():
@@ -243,17 +262,26 @@ class ProjectedSurface(RuleCheckOneObject):
         else:
             self.produce_select()
 
+
 ORIENTATION_TYPE = Literal["Parrallel", "Perpendicular"]
 
+
 class Orientation(RuleCheckOneObject):
-    def __init__(self, source, orientation,orientation_type:ORIENTATION_TYPE,direction_method:DIRECTION_METHOD,angular_tolerance:float=0.1):
-        #@todo We can set an East, North, etc orientation to check
+    def __init__(
+        self,
+        source,
+        orientation,
+        orientation_type: ORIENTATION_TYPE,
+        direction_method: DIRECTION_METHOD,
+        angular_tolerance: float = 0.1,
+    ):
+        # @todo We can set an East, North, etc orientation to check
         super().__init__(source)
         self.type = "Orientation"
-        self.orientation: tuple[float,float,float] = orientation
+        self.orientation: tuple[float, float, float] = orientation
         self.orientation_type: ORIENTATION_TYPE = orientation_type
-        self.direction_method:DIRECTION_METHOD=direction_method
-        self.angular_tolerance:float =angular_tolerance
+        self.direction_method: DIRECTION_METHOD = direction_method
+        self.angular_tolerance: float = angular_tolerance
         self.geom_settings = ifcopenshell.geom.settings()
         self.geom_settings.set(self.geom_settings.USE_PYTHON_OPENCASCADE, True)
 
@@ -261,7 +289,9 @@ class Orientation(RuleCheckOneObject):
 
         self.select_source.run()
 
-        occ_orientation=gp_Dir(self.orientation[0],self.orientation[1],self.orientation[2])
+        occ_orientation = gp_Dir(
+            self.orientation[0], self.orientation[1], self.orientation[2]
+        )
 
         for ifc_file in self.select_source.dict_elements.keys():
             iterator = ifcopenshell.geom.iterator(
@@ -276,21 +306,24 @@ class Orientation(RuleCheckOneObject):
                     shape = iterator.get()
                     geom = shape.geometry
                     entity = ifc_file.by_id(shape.data.id)
-                    obb=create_obb_from_TopoDs_Shape(geom)
-                    dir1,dir2=obb.get_two_main_direction_OBB_shape(self.direction_method)
+                    obb = create_obb_from_TopoDs_Shape(geom)
+                    dir1, dir2 = obb.get_two_main_direction_OBB_shape(
+                        self.direction_method
+                    )
 
-                    is_parrallel=occ_orientation.IsParallel(dir1,self.angular_tolerance)
+                    is_parrallel = occ_orientation.IsParallel(
+                        dir1, self.angular_tolerance
+                    )
 
-
-                    if self.direction_method=="Parrallel":
-                        check_direction=is_parrallel
-                    elif self.direction_method=="Perpendicular":
-                        check_direction=not is_parrallel
+                    if self.direction_method == "Parrallel":
+                        check_direction = is_parrallel
+                    elif self.direction_method == "Perpendicular":
+                        check_direction = not is_parrallel
 
                     if check_direction:
                         result = ClashResultOneObject(source=entity, state=True)
                         self.result.append(result)
-                    else:          
+                    else:
                         self.result_fail_source.append(entity)
 
                     if not iterator.next():
@@ -304,8 +337,17 @@ class Orientation(RuleCheckOneObject):
 
 # ===== Two Objects Rule
 
+
 class AngleBetween(RuleCheckTwoObjects):
-    def __init__(self, source, target, direction_method_for_source:DIRECTION_METHOD,direction_method_for_target:DIRECTION_METHOD, angle_difference:float, angle_tolerance:float):
+    def __init__(
+        self,
+        source,
+        target,
+        direction_method_for_source: DIRECTION_METHOD,
+        direction_method_for_target: DIRECTION_METHOD,
+        angle_difference: float,
+        angle_tolerance: float,
+    ):
         super().__init__(source, target)
         self.type = "AngleBetween"
         self.direction_method_for_source: DIRECTION_METHOD = direction_method_for_source
@@ -315,7 +357,7 @@ class AngleBetween(RuleCheckTwoObjects):
         self.geom_settings = ifcopenshell.geom.settings()
         self.geom_settings.set(self.geom_settings.USE_PYTHON_OPENCASCADE, True)
 
-    def _get_object_main_direction(self, geom,method):
+    def _get_object_main_direction(self, geom, method):
         """Get the main direction of an object from its OBB using the specified method"""
         obb = create_obb_from_TopoDs_Shape(geom)
         dir1, dir2 = obb.get_two_main_direction_OBB_shape(method)
@@ -326,11 +368,11 @@ class AngleBetween(RuleCheckTwoObjects):
         # Use OCC's Angle() method which returns angle in radians
         angle_rad = dir1.Angle(dir2)
         angle_deg = np.degrees(angle_rad)
-        
+
         # Handle circular nature of angles and find smallest difference
         angle_diff = abs(angle_deg - self.angle_difference)
         angle_diff = min(angle_diff, 360 - angle_diff)
-        
+
         return angle_diff <= self.angle_tolerance
 
     def run(self, state="Final"):
@@ -352,11 +394,10 @@ class AngleBetween(RuleCheckTwoObjects):
                     shape = iterator.get()
                     geom = shape.geometry
                     entity = ifc_file.by_id(shape.data.id)
-                    direction = self._get_object_main_direction(geom,self.direction_method_for_source)
-                    source_objects.append({
-                        "entity": entity,
-                        "direction": direction
-                    })
+                    direction = self._get_object_main_direction(
+                        geom, self.direction_method_for_source
+                    )
+                    source_objects.append({"entity": entity, "direction": direction})
                     if not iterator.next():
                         break
 
@@ -374,11 +415,10 @@ class AngleBetween(RuleCheckTwoObjects):
                     shape = iterator.get()
                     geom = shape.geometry
                     entity = ifc_file.by_id(shape.data.id)
-                    direction = self._get_object_main_direction(geom,self.direction_method_for_target)
-                    target_objects.append({
-                        "entity": entity,
-                        "direction": direction
-                    })
+                    direction = self._get_object_main_direction(
+                        geom, self.direction_method_for_target
+                    )
+                    target_objects.append({"entity": entity, "direction": direction})
                     if not iterator.next():
                         break
 
@@ -386,13 +426,12 @@ class AngleBetween(RuleCheckTwoObjects):
         for source_obj in source_objects:
             for target_obj in target_objects:
                 if self._calculate_angle_between_dir(
-                    source_obj["direction"],
-                    target_obj["direction"]
+                    source_obj["direction"], target_obj["direction"]
                 ):
                     result = ClashResultTwoObjects(
                         source=source_obj["entity"],
                         target=target_obj["entity"],
-                        state=True
+                        state=True,
                     )
                     self.result.append(result)
 
@@ -402,14 +441,13 @@ class AngleBetween(RuleCheckTwoObjects):
         if state == "Select":
             self.produce_select()
 
-
     def _display_specific(self):
         from OCC.Core.AIS import AIS_Shape
         from OCC.Core.Quantity import Quantity_Color, Quantity_TOC_RGB
-        
+
         settings = ifcopenshell.geom.settings()
         settings.set("USE_WORLD_COORDS", True)
-        #settings.set("use-python-opencascade", True)
+        # settings.set("use-python-opencascade", True)
 
         for ifc_file in self.select_source.dict_elements.keys():
             iterator = ifcopenshell.geom.iterator(
@@ -423,9 +461,13 @@ class AngleBetween(RuleCheckTwoObjects):
                     shape = iterator.get()
                     geom = shape.geometry
                     entity = ifc_file.by_id(shape.data.id)
-                    direction = self._get_object_main_direction(geom,self.direction_method_for_source)
-                    polygon=create_makepolygon_with_dir((direction.X(),direction.Y(),direction.Z()))
-                    ais_shape=AIS_Shape(polygon)
+                    direction = self._get_object_main_direction(
+                        geom, self.direction_method_for_source
+                    )
+                    polygon = create_makepolygon_with_dir(
+                        (direction.X(), direction.Y(), direction.Z())
+                    )
+                    ais_shape = AIS_Shape(polygon)
                     green_color = Quantity_Color(0.0, 1.0, 0.0, Quantity_TOC_RGB)
                     ais_shape.SetColor(green_color)
                     ais_shape.SetTransparency(0.2)
@@ -448,16 +490,17 @@ class AngleBetween(RuleCheckTwoObjects):
                     shape = iterator.get()
                     geom = shape.geometry
                     entity = ifc_file.by_id(shape.data.id)
-                    direction = self._get_object_main_direction(geom,self.direction_method_for_target)
-                    polygon=create_makepolygon_with_dir((direction.X(),direction.Y(),direction.Z()))
-                    ais_shape=AIS_Shape(polygon)
+                    direction = self._get_object_main_direction(
+                        geom, self.direction_method_for_target
+                    )
+                    polygon = create_makepolygon_with_dir(
+                        (direction.X(), direction.Y(), direction.Z())
+                    )
+                    ais_shape = AIS_Shape(polygon)
                     green_color = Quantity_Color(0.0, 1.0, 0.0, Quantity_TOC_RGB)
                     ais_shape.SetColor(green_color)
                     ais_shape.SetTransparency(0.2)
                     self.display.Context.Display(ais_shape, True)
-
-                    
-
 
                     if not iterator.next():
                         break
@@ -538,8 +581,9 @@ class Intersection(RuleCheckTwoObjects):
         if state == "Select":
             self.produce_select()
 
+
 class Clearance(RuleCheckTwoObjects):
-    #@todo create a max distance for clearance
+    # @todo create a max distance for clearance
     def __init__(self, source, target, clearance=0.05):
         super().__init__(source, target)
 
@@ -621,7 +665,7 @@ class Collision(RuleCheckTwoObjects):
             allow_touching=self.allow_touching,
         )
 
-        self.result=[]
+        self.result = []
 
         for result in temp_result:
             a_file = ifcopenshell.file.from_pointer(result.a.file_pointer())
@@ -652,49 +696,45 @@ class Collision(RuleCheckTwoObjects):
 
 
 class Ray_Check(RuleCheckTwoObjects):
-    def __init__(self, source, target, context,max_ray_length):
+    def __init__(self, source, target, context, max_ray_length):
         super().__init__(source, target)
         self.type = "RayCheck"
         self.select_context: Select = context
         self.max_ray_length: float = max_ray_length
         self.geom_settings = ifcopenshell.geom.settings()
-        #self.geom_settings=ifcopenshell.geom.settings(USE_WORLD_COORDS=True)
+        # self.geom_settings=ifcopenshell.geom.settings(USE_WORLD_COORDS=True)
 
     def run(self, state="Final"):
         self.tree = ifcopenshell.geom.tree()
         self.select_source.run()
         self.select_target.run()
 
-
-        #Watch out, we need to manually store the file info in the contect. It's not done when the RuleFile begin.
-        #@todo improve this in order to update every select in every rule
-        self.select_context.list_ifc_path=self.select_source.list_ifc_path
-        self.select_context.list_ifc_file=self.select_source.list_ifc_file
+        # Watch out, we need to manually store the file info in the contect. It's not done when the RuleFile begin.
+        # @todo improve this in order to update every select in every rule
+        self.select_context.list_ifc_path = self.select_source.list_ifc_path
+        self.select_context.list_ifc_file = self.select_source.list_ifc_file
         self.select_context.run()
 
+        self.add_to_tree(self.select_context, "UB")
+        # self.add_to_tree(self.select_source, "UB")
+        # self.add_to_tree(self.select_target, "UB")
 
-        self.add_to_tree(self.select_context,"UB")
-        #self.add_to_tree(self.select_source, "UB")
-        #self.add_to_tree(self.select_target, "UB")
-        
         self.select_source.create_list_of_element()
         self.select_target.create_list_of_element()
         self.select_context.create_list_of_element()
 
         for source in self.select_source.list_of_elements:
             for target in self.select_target.list_of_elements:
-
-                source_position=clash_utils.get_XYZ_placement(source)
-                target_position=clash_utils.get_XYZ_placement(target)
+                source_position = clash_utils.get_XYZ_placement(source)
+                target_position = clash_utils.get_XYZ_placement(target)
                 source_array = np.array(source_position)
                 target_array = np.array(target_position)
-                        
+
                 direction = target_array - source_array
 
-
                 distance = np.linalg.norm(direction)
-                if distance==0:
-                    #It's the same object
+                if distance == 0:
+                    # It's the same object
                     continue
 
                 direction = tuple(direction.flatten())
@@ -704,11 +744,11 @@ class Ray_Check(RuleCheckTwoObjects):
                     float(direction[2] / distance),
                 )
 
+                results = self.tree.select_ray(
+                    source_position, direction, length=distance
+                )
 
-
-                results = self.tree.select_ray(source_position, direction, length=distance)
-                
-                number=0
+                number = 0
                 for result in results:
                     """
                     distance: Any
@@ -720,22 +760,15 @@ class Ray_Check(RuleCheckTwoObjects):
                     style_index: Any
                     """
                     result_object = result.instance.file_.by_id(result.instance.id())
-                    #the ray is not working properly. Something is off.
-                    
+                    # the ray is not working properly. Something is off.
 
-                    #The clash will append when we can detect two object that are in direct view.
+                    # The clash will append when we can detect two object that are in direct view.
 
-
-                    #print(result_object,target)
-                    if result_object==target:
+                    # print(result_object,target)
+                    if result_object == target:
                         print(target)
-                
 
-
-
-
-
-        #self.tree.select_ray()
+        # self.tree.select_ray()
         # @todo Finish Ray Check
         print("Not working, must be defined")
 
@@ -752,8 +785,6 @@ class Ray_Check(RuleCheckTwoObjects):
         self.add_OneObject_to_tree(self.Select_Target, "UB")
 
         self.add_to_tree(self.Select_Context_Element, "UB")
-
-
 
         source_position = clash_utils.get_XYZ_placement(self.Select_Source)
         target_position = clash_utils.get_XYZ_placement(self.Select_Target)
@@ -795,7 +826,6 @@ class Ray_Check(RuleCheckTwoObjects):
                 return False
 
 
-
 ABOVE_TYPE = Literal[
     "Above_MinToMax", "Above_MinToMin", "Above_MaxToMin", "Above_MaxToMax"
 ]
@@ -831,13 +861,6 @@ class Above(RuleCheckTwoObjects):
         else:
             target_direction = gp_Dir(0.0, 0.0, 1.0)
 
-
-        #todo This is a slow way, you check every combinaison. We could reduce it with a BB clash before to narrow the faces.
-        #I need to finish the OBB Above rule, and use it as an entry for this function. 
-        #1. OBB Check
-        #2. Get Top or Bottom Face
-
-
         # Check the extrem face of the source
         for ifc_file in self.select_source.dict_elements.keys():
             iterator = ifcopenshell.geom.iterator(
@@ -849,16 +872,23 @@ class Above(RuleCheckTwoObjects):
 
             if iterator.initialize():
                 while True:
-                    
                     shape = iterator.get()
                     geom = shape.geometry
                     entity = ifc_file.by_id(shape.data.id)
 
-                    extrem_faces = clash_utils.get_faces_visible_from_direction_with_plane(shape=geom, direction=source_direction)
-                    obb = create_obb_from_TopoDs_Shape(geom) #Why not use 
+                    extrem_faces = (
+                        clash_utils.get_faces_visible_from_direction_with_plane(
+                            shape=geom, direction=source_direction
+                        )
+                    )
+                    obb = create_obb_from_TopoDs_Shape(geom)  # Why not use
                     clash_obb = obb.detach_top_by_extrude(self.tolerance)
 
-                    dict = {"entity": entity,"extrem_faces": extrem_faces["visible_faces"],"obb":clash_obb}
+                    dict = {
+                        "entity": entity,
+                        "extrem_faces": extrem_faces["visible_faces"],
+                        "obb": clash_obb,
+                    }
                     sources_data.append(dict)
 
                     if not iterator.next():
@@ -880,9 +910,17 @@ class Above(RuleCheckTwoObjects):
                     geom = shape.geometry
                     entity = ifc_file.by_id(shape.data.id)
 
-                    extrem_faces = clash_utils.get_faces_visible_from_direction_with_plane(shape=geom, direction=target_direction)
-                    obb = create_obb_from_TopoDs_Shape(geom) 
-                    dict = {"entity": entity,"extrem_faces": extrem_faces["visible_faces"],"obb":obb}
+                    extrem_faces = (
+                        clash_utils.get_faces_visible_from_direction_with_plane(
+                            shape=geom, direction=target_direction
+                        )
+                    )
+                    obb = create_obb_from_TopoDs_Shape(geom)
+                    dict = {
+                        "entity": entity,
+                        "extrem_faces": extrem_faces["visible_faces"],
+                        "obb": obb,
+                    }
                     targets_data.append(dict)
 
                     if not iterator.next():
@@ -891,10 +929,8 @@ class Above(RuleCheckTwoObjects):
         # Check if part of extrem faces are close to each other
         for source in sources_data:
             for target in targets_data:
-                    
                 if source["obb"].IsOut(target["obb"]):
                     continue
-
 
                 source_geom = source["extrem_faces"]
                 target_geom = target["extrem_faces"]
@@ -916,14 +952,14 @@ class Above(RuleCheckTwoObjects):
                             )
                             self.result.append(result)
 
-
         if state == "Final":
             self.manage_result()
 
         if state == "Select":
             self.produce_select()
 
-class Below(RuleCheckTwoObjects): #@todo Check this rule
+
+class Below(RuleCheckTwoObjects):  # @todo Check this rule
     def __init__(self, source, target, above_type: BELOW_TYPE, tolerance=0.1):
         super().__init__(source, target)
         self.type = above_type
@@ -1027,7 +1063,6 @@ class Below(RuleCheckTwoObjects): #@todo Check this rule
 
                         t = [t0, t1, t2]
 
-
                         # The target face must be below the source.
                         check_below = (source_center - target_center)[2]
                         if check_below < 0:
@@ -1067,6 +1102,7 @@ class Below(RuleCheckTwoObjects): #@todo Check this rule
 
         if state == "Select":
             self.produce_select()
+
 
 class Template(RuleCheckTwoObjects):
     def __init__(self, source, target, tolerance=0.1):
@@ -1112,10 +1148,12 @@ class OBB_Above(RuleCheckTwoObjects):
                     entity = ifc_file.by_id(shape.data.id)
 
                     # Create OBB for the source object (detection zone)
-                    obb = create_obb_from_TopoDs_Shape(geom) #Why not use 
+                    obb = create_obb_from_TopoDs_Shape(geom)  # Why not use
                     clash_obb = obb.detach_top_by_extrude(self.tolerance)
                     compound = clash_obb.to_TopoDS_Solid()
-                    source_geoms.append({"entity": entity, "geom": compound,"obb":clash_obb})
+                    source_geoms.append(
+                        {"entity": entity, "geom": compound, "obb": clash_obb}
+                    )
 
                     if not iterator.next():
                         break
@@ -1137,7 +1175,7 @@ class OBB_Above(RuleCheckTwoObjects):
                     geom = shape.geometry
                     entity = ifc_file.by_id(shape.data.id)
                     obb = create_obb_from_TopoDs_Shape(geom)
-                    target_geoms.append({"entity": entity, "geom": geom,"obb":obb})
+                    target_geoms.append({"entity": entity, "geom": geom, "obb": obb})
 
                     if not iterator.next():
                         break
@@ -1145,10 +1183,8 @@ class OBB_Above(RuleCheckTwoObjects):
         # Check for clashes between source OBBs (detection zones) and target geometries
         for source_data in source_geoms:
             for target_data in target_geoms:
-                
                 if source_data["obb"].IsOut(target_data["obb"]):
                     continue
-
 
                 source_geom = source_data["geom"]
                 target_geom = target_data["geom"]
@@ -1178,10 +1214,10 @@ class OBB_Above(RuleCheckTwoObjects):
     def _display_specific(self):
         from OCC.Core.AIS import AIS_Shape
         from OCC.Core.Quantity import Quantity_Color, Quantity_TOC_RGB
-        
+
         settings = ifcopenshell.geom.settings()
         settings.set("USE_WORLD_COORDS", True)
-        #settings.set("use-python-opencascade", True)
+        # settings.set("use-python-opencascade", True)
 
         # Check the extrem face of the source
         for ifc_file in self.select_source.dict_elements.keys():
@@ -1197,19 +1233,18 @@ class OBB_Above(RuleCheckTwoObjects):
                     shape = iterator.get()
                     geom = shape.geometry
 
-
                     obb = create_obb_from_TopoDs_Shape(geom)
                     clash_obb = obb.detach_top_by_extrude(self.tolerance)
                     compound = clash_obb.to_TopoDS_Compound()
-                    ais_shape=AIS_Shape(compound)
+                    ais_shape = AIS_Shape(compound)
                     green_color = Quantity_Color(0.0, 1.0, 0.0, Quantity_TOC_RGB)
                     ais_shape.SetColor(green_color)
                     ais_shape.SetTransparency(0.2)
                     self.display.Context.Display(ais_shape, True)
 
-
                     if not iterator.next():
                         break
+
 
 class OBB_Below(RuleCheckTwoObjects):
     def __init__(self, source, target, tolerance):
@@ -1244,7 +1279,9 @@ class OBB_Below(RuleCheckTwoObjects):
                     obb = create_obb_from_TopoDs_Shape(geom)
                     clash_obb = obb.detach_bottom_by_extrude(self.tolerance)
                     compound = clash_obb.to_TopoDS_Solid()
-                    source_geoms.append({"entity": entity, "geom": compound,"obb":clash_obb})
+                    source_geoms.append(
+                        {"entity": entity, "geom": compound, "obb": clash_obb}
+                    )
 
                     if not iterator.next():
                         break
@@ -1265,7 +1302,7 @@ class OBB_Below(RuleCheckTwoObjects):
                     geom = shape.geometry
                     entity = ifc_file.by_id(shape.data.id)
                     obb = create_obb_from_TopoDs_Shape(geom)
-                    target_geoms.append({"entity": entity, "geom": geom,"obb":obb})
+                    target_geoms.append({"entity": entity, "geom": geom, "obb": obb})
 
                     if not iterator.next():
                         break
@@ -1273,14 +1310,11 @@ class OBB_Below(RuleCheckTwoObjects):
         # Check for clashes between source OBBs (detection zones) and target geometries
         for source_data in source_geoms:
             for target_data in target_geoms:
-
                 if source_data["obb"].IsOut(target_data["obb"]):
                     continue
-                
+
                 the_source_geom = source_data["geom"]
                 the_target_geom = target_data["geom"]
-
-                
 
                 # Calculate distance between OBB and geometry
                 dist_tool = BRepExtrema_DistShapeShape()
@@ -1289,7 +1323,12 @@ class OBB_Below(RuleCheckTwoObjects):
                 dist_tool.Perform()
                 distance = dist_tool.Value()
 
-                print(source_data["entity"].GlobalId, target_data["entity"].GlobalId, distance, dist_tool.InnerSolution())
+                print(
+                    source_data["entity"].GlobalId,
+                    target_data["entity"].GlobalId,
+                    distance,
+                    dist_tool.InnerSolution(),
+                )
 
                 # If they touch (distance <= tolerance), it's a clash.
                 if distance <= 1e-6:
@@ -1309,10 +1348,10 @@ class OBB_Below(RuleCheckTwoObjects):
     def _display_specific(self):
         from OCC.Core.AIS import AIS_Shape
         from OCC.Core.Quantity import Quantity_Color, Quantity_TOC_RGB
-        
+
         settings = ifcopenshell.geom.settings()
         settings.set("USE_WORLD_COORDS", True)
-        #settings.set("use-python-opencascade", True)
+        # settings.set("use-python-opencascade", True)
 
         # Check the extrem face of the source
         for ifc_file in self.select_source.dict_elements.keys():
@@ -1328,27 +1367,26 @@ class OBB_Below(RuleCheckTwoObjects):
                     shape = iterator.get()
                     geom = shape.geometry
 
-
                     obb = create_obb_from_TopoDs_Shape(geom)
                     clash_obb = obb.detach_bottom_by_extrude(self.tolerance)
                     compound = clash_obb.to_TopoDS_Compound()
-                    ais_shape=AIS_Shape(compound)
+                    ais_shape = AIS_Shape(compound)
                     green_color = Quantity_Color(0.0, 1.0, 0.0, Quantity_TOC_RGB)
                     ais_shape.SetColor(green_color)
                     ais_shape.SetTransparency(0.2)
                     self.display.Context.Display(ais_shape, True)
 
-
                     if not iterator.next():
                         break
 
+
 class OBB_Front_And_Back(RuleCheckTwoObjects):
-    def __init__(self, source, target, tolerance,method:DIRECTION_METHOD):
+    def __init__(self, source, target, tolerance, method: DIRECTION_METHOD):
         super().__init__(source, target)
         self.tolerance: float = tolerance
         self.geom_settings = ifcopenshell.geom.settings()
         self.geom_settings.set(self.geom_settings.USE_PYTHON_OPENCASCADE, True)
-        self.direction_method=method
+        self.direction_method = method
 
     def run(self, state="Final"):
         self.tree = ifcopenshell.geom.tree()
@@ -1373,9 +1411,15 @@ class OBB_Front_And_Back(RuleCheckTwoObjects):
 
                     # Create OBB for the source object (detection zone)
                     obb = create_obb_from_TopoDs_Shape_via_pca(geom)
-                    main_directions=obb.get_two_main_direction_OBB_shape(self.direction_method)
-                    clash_obb_1=obb.detach_side_by_extrude(main_directions[0],self.tolerance)
-                    clash_obb_2=obb.detach_side_by_extrude(main_directions[0],self.tolerance)
+                    main_directions = obb.get_two_main_direction_OBB_shape(
+                        self.direction_method
+                    )
+                    clash_obb_1 = obb.detach_side_by_extrude(
+                        main_directions[0], self.tolerance
+                    )
+                    clash_obb_2 = obb.detach_side_by_extrude(
+                        main_directions[0], self.tolerance
+                    )
 
                     compound_1 = clash_obb_1.to_compound()
                     compound_2 = clash_obb_2.to_compound()
