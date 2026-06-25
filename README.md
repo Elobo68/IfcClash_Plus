@@ -61,8 +61,8 @@ There is a sheet for every rule, that present the rule, the parameters and the e
 
 | **Règle** | **Type** | **Règle** | **Doc** | **Test** |
 |-----------|----------|-----------|---------|----------|
-| [Clearance Above Object](doc/2ObjectsRules/ClearanceAbove.md) | Two Objects | OK | KO | KO |
-| [Clearance Next To Object](doc/2ObjectsRules/ClearanceNextTo) | Two Objects | KO | KO | KO |
+| [Clearance Above Object](doc/2ObjectsRules/ClearanceAbove.md) | Two Objects | OK | KO | OK |
+| [Clearance Next To Object](doc/2ObjectsRules/ClearanceNextTo) | Two Objects | KO | KO | OK |
 | [Clearance Below Object](doc/2ObjectsRules/ClearanceBelow) | Two Objects | KO | KO | KO |
 
 #### Clearance with OBB

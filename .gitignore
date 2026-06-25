@@ -33,3 +33,4 @@ ifcclash_plus/__pycache__/RuleClass.cpython-314.pyc
 ifcclash_plus/__pycache__/Rules.cpython-314.pyc
 tests/__pycache__/test_custom_obb.cpython-314.pyc
 tests/__pycache__/test_RuleFile.cpython-314.pyc
+ifcclash_plus/constructtest_python.py
