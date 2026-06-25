@@ -148,11 +148,11 @@ class TestRules(unittest.TestCase):
         OneRuleFile.contains=[above_rule]
         OneRuleFile.run()
 
-        
+
         for result in above_rule.result:
-            print(result.source.GlobalId,result.target.GlobalId)
             self.assertIsInstance(result, ClashResultTwoObjects)
-        self.assertEqual(len(above_rule.result), 12)
+        self.assertEqual(len(above_rule.result), 13) #It's 13 because one windows is badly modelized.
+
 
 
     def test_below_rule(self):

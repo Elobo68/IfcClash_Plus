@@ -50,11 +50,13 @@ import clash_utils
 
 
 if __name__ == "__main__":
-    Chemin="/home/jocelin/Documents/200 - IFC/IfcSampleFiles-main/Ifc2x3_Duplex_Architecture.ifc"
+    Chemin="/home/jocelin/Documents/05 - Programmation/IfcClash_Plus/Ifc_Model/Ifc2x3_Duplex_Architecture.ifc"
     file=ifcopenshell.open(Chemin)
 
     #objects=file.by_type("IfcWallStandardCase")
     objects=file.by_type("IfcFurnishingElement")
+    objects=file.by_type("IfcDistributionControlElement")
+    objects=file.by_type("IfcWindow")
     the_settings=ifcopenshell.geom.settings()
     the_settings.set("use-python-opencascade", True)
     iterator = ifcopenshell.geom.iterator(
@@ -80,7 +82,7 @@ if __name__ == "__main__":
 
             display = add_to_display_yellow(display, geom)
 
-            result = clash_utils.get_faces_visible_from_direction_with_plane(shape=geom,direction=direction_to_check,n_ray_samples=20)
+            result = clash_utils.get_faces_visible_from_direction_with_plane(shape=geom,direction=direction_to_check,n_ray_samples=10)
             List_of_faces = result['visible_faces']
 
             print(entity)

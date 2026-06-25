@@ -1066,6 +1066,11 @@ def get_faces_visible_from_direction_with_plane(
     
     Cette fonction simule un point de vue lointain : les rayons sont tirés depuis un plan
     situé derrière l'objet (dans la direction opposée à la direction de vue) vers l'objet.
+
+
+    #@todo If the object has a lot of triangle, the number of ray samples must be increased a lot in order to get the full surface.
+
+    #This function has the advantages of giving the extrem surface even in case of bad modeling (flipped surface) but for complex objects it can not give best solution.
     
     Args:
         shape: La géométrie à analyser

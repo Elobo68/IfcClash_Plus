@@ -22,9 +22,10 @@ from CustomOBB import (
 )
 from OCC.Core.BRepExtrema import BRepExtrema_DistShapeShape, BRepExtrema_ExtFF
 import ifcopenshell.util.placement
-from OCC.Core.gp import gp_Ax3, gp_Pnt, gp_Dir, gp_Trsf, gp_XYZ, gp_Vec
+from OCC.Core.gp import gp_Ax3, gp_Pnt, gp_Dir, gp_Trsf, gp_XYZ, gp_Vec,gp_Lin
 import ifcopenshell.util.shape
 from construct_display_function import create_makepolygon_with_dir
+from OCC.Core.BRepIntCurveSurface import BRepIntCurveSurface_Inter
 
 
 DIRECTION_METHOD = Literal["Wide", "Narrow"]
@@ -876,13 +877,15 @@ class Above(RuleCheckTwoObjects):
                     geom = shape.geometry
                     entity = ifc_file.by_id(shape.data.id)
 
+                    obb = create_obb_from_TopoDs_Shape(geom)
+                    clash_obb = obb.detach_top_by_extrude(self.tolerance)
+
                     extrem_faces = (
                         clash_utils.get_faces_visible_from_direction_with_plane(
                             shape=geom, direction=source_direction
                         )
                     )
-                    obb = create_obb_from_TopoDs_Shape(geom)  # Why not use
-                    clash_obb = obb.detach_top_by_extrude(self.tolerance)
+                    
 
                     dict = {
                         "entity": entity,
@@ -894,7 +897,6 @@ class Above(RuleCheckTwoObjects):
                     if not iterator.next():
                         break
 
-            break
         # Check the extrem face of the target
         for ifc_file in self.select_target.dict_elements.keys():
             iterator = ifcopenshell.geom.iterator(
@@ -910,12 +912,13 @@ class Above(RuleCheckTwoObjects):
                     geom = shape.geometry
                     entity = ifc_file.by_id(shape.data.id)
 
+                    obb = create_obb_from_TopoDs_Shape(geom)
                     extrem_faces = (
                         clash_utils.get_faces_visible_from_direction_with_plane(
                             shape=geom, direction=target_direction
                         )
                     )
-                    obb = create_obb_from_TopoDs_Shape(geom)
+                    
                     dict = {
                         "entity": entity,
                         "extrem_faces": extrem_faces["visible_faces"],
@@ -928,45 +931,55 @@ class Above(RuleCheckTwoObjects):
 
         # Check if part of extrem faces are close to each other
         for source in sources_data:
+            flag_is_above=False
+            source_globalid=str(source["entity"].GlobalId)
+
+
             for target in targets_data:
+                target_globalid=(target["entity"].GlobalId)
+                
+
                 if source["obb"].IsOut(target["obb"]):
+  
                     continue
 
                 source_geom = source["extrem_faces"]
                 target_geom = target["extrem_faces"]
-                #@todo the result is not above, the OBB is not enough to get above element. We give several time the same clash is several faces are close to each other.
-                #We can give
-                flag_is_above=False
-                list_of_close_face=[]
+                
+                result=self._check_distance(source_geom,target_geom)
 
-                for source_face in source_geom:
-                    for target_face in target_geom:
-                        dist_tool = BRepExtrema_DistShapeShape()
-                        dist_tool.LoadS1(source_face)
-                        dist_tool.LoadS2(target_face)
-                        dist_tool.Perform()
-                        distance = dist_tool.Value()
-
-                        # If they touch (distance <= tolerance), it's close enough to check if the face is exactly above.
-                        if distance <= self.tolerance:
-                            list_of_close_face.append(target_face)
-                for source_face in source_geom:
-                    for close_target_face in list_of_close_face:
-
-
-
-                        if True:
-                            result = ClashResultTwoObjects(
+                if result["is_above"]=="Right_Above":
+                    self.result.append(
+                            ClashResultTwoObjects(
                                 source=source["entity"],
                                 target=target["entity"],
-                                state=False,
-                            )
-                            self.result.append(result)
-                            flag_is_above=True
+                                state=True,
+                            ))
+                    continue
+                if result["is_above"]=="Too_Far":
+                    continue
+
+
+                for source_face in source_geom:
+                    for point_on_target in result["list_of_point_on_target"]:
+
+                        bottom_direction=gp_Dir(0.0, 0.0, -1.0)
+                        ray = gp_Lin(point_on_target, bottom_direction)
+        
+                        # Trouver les intersections avec la shape
+                        inter = BRepIntCurveSurface_Inter()
+                        inter.Init(source_face, ray, 1e-7)
+
+                        if inter.More():
+                            self.result.append(
+                            ClashResultTwoObjects(
+                                source=source["entity"],
+                                target=target["entity"],
+                                state=True,
+                            ))
                             break
-                    
-                    if flag_is_above:
-                        break
+                        
+
 
         if state == "Final":
             self.manage_result()
@@ -974,6 +987,44 @@ class Above(RuleCheckTwoObjects):
         if state == "Select":
             self.produce_select()
 
+
+    def _check_distance(self,list_of_source_face,list_of_target_face):
+        dict_to_return={"is_above":None,"list_of_point_on_target":[]}
+        for source_face in list_of_source_face:
+            for target_face in list_of_target_face:
+                
+                dist_tool = BRepExtrema_DistShapeShape()
+                dist_tool.LoadS1(source_face)
+                dist_tool.LoadS2(target_face)
+                dist_tool.Perform()
+                distance = dist_tool.Value()
+
+                # If they touch (distance <= tolerance), it's close enough to check if the face is exactly above.
+                if distance <= self.tolerance:
+                    
+                    #We check if the target point is exactly above the source point. 
+                    for i in range(1,dist_tool.NbSolution()):
+                        pt_source=dist_tool.PointOnShape1(i)
+                        pt_target=dist_tool.PointOnShape2(i)
+
+                        if not pt_source.Z()<pt_target.Z():
+                            continue
+
+                        if pt_source.X()-pt_target.X()<1e-3:
+                            if pt_source.Y()-pt_target.Y()<1e-3: 
+                                dict_to_return["is_above"]="Right_Above"
+                                return dict_to_return
+ 
+
+                        dict_to_return["list_of_point_on_target"].append(pt_target)
+
+        if dict_to_return["list_of_point_on_target"]==[]:
+            dict_to_return["is_above"]="Too_Far"
+        else:
+            dict_to_return["is_above"]="Need_More_Check"
+
+
+        return dict_to_return
 
 class Below(RuleCheckTwoObjects):  # @todo Check this rule
     def __init__(self, source, target, above_type: BELOW_TYPE, tolerance=0.1):
