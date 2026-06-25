@@ -15,7 +15,7 @@ from ifcopenshell.util.shape import (
 import numpy as np
 from typing import Literal
 from CustomOBB import create_obb_from_TopoDs_Shape_via_pca,create_obb_with_free_z,create_obb_with_fixed_z,create_obb_from_TopoDs_Shape
-from OCC.Core.BRepExtrema import BRepExtrema_DistShapeShape
+from OCC.Core.BRepExtrema import BRepExtrema_DistShapeShape,BRepExtrema_ExtFF
 import ifcopenshell.util.placement
 from OCC.Core.gp import gp_Ax3, gp_Pnt, gp_Dir, gp_Trsf, gp_XYZ, gp_Vec
 import ifcopenshell.util.shape
@@ -858,7 +858,7 @@ class Above(RuleCheckTwoObjects):
                     obb = create_obb_from_TopoDs_Shape(geom) #Why not use 
                     clash_obb = obb.detach_top_by_extrude(self.tolerance)
 
-                    dict = {"entity": entity,"extrem_faces": extrem_faces,"obb":clash_obb}
+                    dict = {"entity": entity,"extrem_faces": extrem_faces["visible_faces"],"obb":clash_obb}
                     sources_data.append(dict)
 
                     if not iterator.next():
@@ -882,13 +882,11 @@ class Above(RuleCheckTwoObjects):
 
                     extrem_faces = clash_utils.get_faces_visible_from_direction_with_plane(shape=geom, direction=target_direction)
                     obb = create_obb_from_TopoDs_Shape(geom) 
-                    dict = {"entity": entity,"extrem_faces": extrem_faces,"obb":obb}
+                    dict = {"entity": entity,"extrem_faces": extrem_faces["visible_faces"],"obb":obb}
                     targets_data.append(dict)
 
                     if not iterator.next():
                         break
-
-        list_result = []
 
         # Check if part of extrem faces are close to each other
         for source in sources_data:
@@ -903,25 +901,21 @@ class Above(RuleCheckTwoObjects):
 
                 for source_face in source_geom:
                     for target_face in target_geom:
-
-                        # Calculate distance between OBB and geometry
                         dist_tool = BRepExtrema_DistShapeShape()
                         dist_tool.LoadS1(source_face)
                         dist_tool.LoadS2(target_face)
                         dist_tool.Perform()
                         distance = dist_tool.Value()
 
-                        #@todo Improve to get the only the first result, or the best one.
-                        if distance<1e-6:
-                            list_result.append(
-                                ClashResultTwoObjects(
-                                    source=source["entity"],
-                                    target=target["entity"],
-                                    state=True,
-                                )
+                        # If they touch (distance <= tolerance), it's a clash.
+                        if distance <= self.tolerance:
+                            result = ClashResultTwoObjects(
+                                source=source["entity"],
+                                target=target["entity"],
+                                state=False,
                             )
+                            self.result.append(result)
 
-        self.result = list_result
 
         if state == "Final":
             self.manage_result()
