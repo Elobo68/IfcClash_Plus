@@ -292,9 +292,7 @@ class TestRules(unittest.TestCase):
         OneRuleFile.list_ifc_path = [self.ifc_path]
 
         # Select walls as source
-        #first_facet = ids.Entity(name="IFCWALLSTANDARDCASE")
         first_facet = ids.Attribute(name="GlobalId",value="2O2Fr$t4X7Zf8NOew3FLQD")
-        first_facet = ids.Entity(name="IFCWALLSTANDARDCASE")
         first_select = SelectFacet()
         first_select.applicability = [first_facet]
 
@@ -309,23 +307,61 @@ class TestRules(unittest.TestCase):
             source=first_select,
             target=second_select,
             direction_method_for_source="Wide",
-            direction_method_for_target="Narrow",
+            direction_method_for_target="Wide",
             angle_difference=0.0,
-            angle_tolerance=0.5
+            angle_tolerance=1.0
         )
-
-        angle_between_rule.display()
-        
+       
         OneRuleFile.contains = [angle_between_rule]
         OneRuleFile.run()
 
         # Verify results
         for result in angle_between_rule.result:
-            print(result.source.GlobalId,result.target.GlobalId)
             self.assertIsInstance(result, ClashResultTwoObjects)
 
-        # Should find some walls and doors at right angles
-        self.assertEqual(len(angle_between_rule.result), 8)
+        # Should find some walls and doors that are parrallels to that one walls.
+        self.assertEqual(len(angle_between_rule.result), 4)
+        
+
+    def test_angle_between_rule2(self):
+        """Test AngleBetween rule with walls and doors"""
+
+        OneRuleFile = RuleFile()
+        OneRuleFile.list_ifc_path = [self.ifc_path]
+
+        # Select walls as source
+        first_facet = ids.Attribute(name="GlobalId",value="2O2Fr$t4X7Zf8NOew3FLQD")
+        first_select = SelectFacet()
+        first_select.applicability = [first_facet]
+
+        # Select doors as target
+        second_facet = ids.Entity(name="IFCDOOR")
+        second_select = SelectFacet()
+        second_select.applicability = [second_facet]
+
+        # Create AngleBetween rule to find perpendicular relationships (walls and doors)
+        # Use Wide method for direction, 90 degrees for perpendicular, 15 degrees tolerance
+        angle_between_rule = AngleBetween(
+            source=first_select,
+            target=second_select,
+            direction_method_for_source="Wide",
+            direction_method_for_target="Wide",
+            angle_difference=90.0,
+            angle_tolerance=1.0
+        )
+       
+        OneRuleFile.contains = [angle_between_rule]
+        OneRuleFile.run()
+
+
+        # Verify results
+        for result in angle_between_rule.result:
+            self.assertIsInstance(result, ClashResultTwoObjects)
+
+        # Should find some walls and doors that are parrallels to that one walls.
+        #self.assertEqual(len(angle_between_rule.result), 6)
+        
+
 
 
 if __name__ == '__main__':

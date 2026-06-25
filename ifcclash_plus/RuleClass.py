@@ -26,6 +26,14 @@ import numpy as np
 import ifcopenshell.util.placement
 from copy import deepcopy, copy
 from ifcopenshell.util.element import get_pset
+import random
+
+
+
+#For displaying
+from OCC.Core.AIS import AIS_Shape
+from OCC.Core.Quantity import Quantity_Color, Quantity_TOC_RGB
+from OCC.Display.SimpleGui import init_display
 
 
 class RuleFile:
@@ -534,9 +542,9 @@ class RuleCheckTwoObjects(RuleCheck):
         def grouping_by_object(self, source_or_target):
             group_dict = {}
             for result in self.result:
-                if source_or_target == "source":
+                if source_or_target == "SOURCE":
                     unique_value = result.source
-                if source_or_target == "target":
+                if source_or_target == "TARGET":
                     unique_value = result.target
 
                 if unique_value not in group_dict:
@@ -572,6 +580,8 @@ class RuleCheckTwoObjects(RuleCheck):
 
         if isinstance(self.select_grouping, Classification):
             grouping_by_classification(self)
+        if self.grouping_by_object == "SOURCE" or self.grouping_by_object == "TARGET":
+            grouping_by_object(self)
 
     def run_criticity(self):
         if self.select_criticity == []:
@@ -728,6 +738,41 @@ class RuleCheckTwoObjects(RuleCheck):
         self._display_generic()
         self._display_specific()
         self._start_display()
+
+
+    def display_result(self):
+
+        def add_to_display_random_color(display,list_of_geoms):
+            for geom in list_of_geoms:
+                ais_shape=AIS_Shape(geom)
+                R=random.randrange(0,255,1)
+                V=random.randrange(0,255,1)
+                B=random.randrange(0,255,1)
+                color = Quantity_Color(R, V, B, Quantity_TOC_RGB)
+                ais_shape.SetColor(color)
+                ais_shape.SetTransparency(0.9)
+                display.Context.Display(ais_shape, True)
+                return display
+
+        self.display, start_display, add_menu, add_function = init_display()
+
+        self.select_grouping="SOURCE"
+        self.run_grouping()
+        
+        for source,target in enumerate(self.grouped_result):
+            self.display=add_to_display_random_color(self.display,source+target)
+
+        self._start_display()
+
+        self.display.FitAll()
+        start_display()
+
+
+
+
+
+
+
 
 
 class RuleCheckComplex(RuleCheck):
