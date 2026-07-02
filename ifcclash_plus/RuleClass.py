@@ -190,7 +190,7 @@ class RuleCheck:
         self.result_fail_source: list[ifcopenshell.entity_instance] = []
 
         self.select_source: Select = source
-        self.select_grouping: SelectFacet = None
+        self.select_grouping: SelectFacet = None #@todo Add the string possibility
         self.select_criticity: list[SelectFacet] = []
         self.select_actor: list[SelectFacet] = []
         self.abs_or_rel_check: AbsoluteOrRelativeChecking = None
@@ -539,12 +539,12 @@ class RuleCheckTwoObjects(RuleCheck):
             print("TODO")
             # @todo Grouping by closeness for 2 objects rules, reuse IfcClash
 
-        def grouping_by_object(self, source_or_target):
+        def grouping_by_object(self):
             group_dict = {}
             for result in self.result:
-                if source_or_target == "SOURCE":
+                if self.select_grouping == "SOURCE":
                     unique_value = result.source
-                if source_or_target == "TARGET":
+                if self.select_grouping == "TARGET":
                     unique_value = result.target
 
                 if unique_value not in group_dict:
@@ -580,7 +580,8 @@ class RuleCheckTwoObjects(RuleCheck):
 
         if isinstance(self.select_grouping, Classification):
             grouping_by_classification(self)
-        if self.grouping_by_object == "SOURCE" or self.grouping_by_object == "TARGET":
+        
+        if self.select_grouping == "SOURCE" or self.select_grouping == "TARGET":
             grouping_by_object(self)
 
     def run_criticity(self):
@@ -742,30 +743,60 @@ class RuleCheckTwoObjects(RuleCheck):
 
     def display_result(self):
 
-        def add_to_display_random_color(display,list_of_geoms):
-            for geom in list_of_geoms:
+        #@todo This function is wrong. It would be better to draw line between objects that are in clash together.
+        #Step One, draw all source
+        #Step Two, draw all target
+        #Step Three, draw line between object, with the
+
+        def add_to_display_random_color(display,list_of_entity,geom_settings):
+            for entity in list_of_entity:
+                shape=ifcopenshell.geom.create_shape(geom_settings,entity)
+                geom=shape.geometry
+
                 ais_shape=AIS_Shape(geom)
-                R=random.randrange(0,255,1)
-                V=random.randrange(0,255,1)
-                B=random.randrange(0,255,1)
+                R=random.randrange(1,255,1)/256
+                V=random.randrange(1,255,1)/256
+                B=random.randrange(1,255,1)/256
                 color = Quantity_Color(R, V, B, Quantity_TOC_RGB)
                 ais_shape.SetColor(color)
                 ais_shape.SetTransparency(0.9)
                 display.Context.Display(ais_shape, True)
-                return display
+            return display
 
-        self.display, start_display, add_menu, add_function = init_display()
+        display, start_display, add_menu, add_function = init_display()
 
         self.select_grouping="SOURCE"
         self.run_grouping()
-        
-        for source,target in enumerate(self.grouped_result):
-            self.display=add_to_display_random_color(self.display,source+target)
 
-        self._start_display()
+        geom_settings = ifcopenshell.geom.settings()
+        geom_settings.set("USE_PYTHON_OPENCASCADE", True)
 
-        self.display.FitAll()
+        for result in self.grouped_result:
+            whole_set=result.source_set|result.target_set
+
+            display=add_to_display_random_color(display,whole_set,geom_settings)
+
+        display.FitAll()
         start_display()
+
+
+
+        """
+                geom_settings = ifcopenshell.geom.settings()
+        geom_settings.set("USE_PYTHON_OPENCASCADE", True)
+
+        source_set=set()
+        target_set=set()
+
+        for result in self.result:
+            source_set.add(result.source)
+            target_set.add(result.target)
+
+        display=add_to_display_random_color(display,source_set,geom_settings)
+        display=add_to_display_random_color(display,target_set,geom_settings)
+        
+        
+        """
 
 
 
