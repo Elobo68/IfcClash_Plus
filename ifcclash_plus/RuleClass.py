@@ -743,35 +743,29 @@ class RuleCheckTwoObjects(RuleCheck):
 
     def display_result(self):
 
-        #@todo This function is wrong. It would be better to draw line between objects that are in clash together.
-        #Step One, draw all source
-        #Step Two, draw all target
-        #Step Three, draw line between object, with the
-
         # Imports for center calculation and edge display
         from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_MakeEdge
         from OCC.Core.Bnd import Bnd_Box
         from OCC.Core.BRepBndLib import brepbndlib
         from OCC.Core.gp import gp_Pnt
 
-        def add_to_display_random_color(display,list_of_entity,geom_settings):
-            for entity in list_of_entity:
-                shape=ifcopenshell.geom.create_shape(geom_settings,entity)
-                geom=shape.geometry
+        def add_to_display(display,entity,geom_settings,color):
+            shape=ifcopenshell.geom.create_shape(geom_settings,entity)
+            geom=shape.geometry
 
-                print(geom.DumpJson())
+            ais_shape=AIS_Shape(geom)
 
-                ais_shape=AIS_Shape(geom)
-                R=random.randrange(1,255,1)/256
-                V=random.randrange(1,255,1)/256
-                B=random.randrange(1,255,1)/256
-
-                Neutral=0.5
-                color = Quantity_Color(Neutral, Neutral, Neutral, Quantity_TOC_RGB)
-                ais_shape.SetColor(color)
-                ais_shape.SetTransparency(0.9)
-                display.Context.Display(ais_shape, True)
+            ais_shape.SetColor(color)
+            ais_shape.SetTransparency(0.9)
+            display.Context.Display(ais_shape, True)
             return display
+
+        def get_random_color():
+            R=random.randrange(1,255,1)/256
+            V=random.randrange(1,255,1)/256
+            B=random.randrange(1,255,1)/256
+            color = Quantity_Color(R, V, B, Quantity_TOC_RGB)
+            return color
 
         def get_entity_center(entity, geom_settings):
             """Calculate the center of an IFC entity's bounding box"""
@@ -791,12 +785,11 @@ class RuleCheckTwoObjects(RuleCheck):
             )
             return center
 
-        def display_edge(display, p1, p2):
+        def display_edge(display, p1, p2,edge_color):
             """Display an edge between two gp_Pnt points"""
             edge = BRepBuilderAPI_MakeEdge(p1, p2).Edge()
             ais_edge = AIS_Shape(edge)
             
-            edge_color = Quantity_Color(1.0, 0.0, 0.0, Quantity_TOC_RGB)
             ais_edge.SetColor(edge_color)
             ais_edge.SetTransparency(0.0)
             
@@ -804,23 +797,30 @@ class RuleCheckTwoObjects(RuleCheck):
 
         display, start_display, add_menu, add_function = init_display()
 
-        self.select_grouping="SOURCE"
-        self.run_grouping()
 
         geom_settings = ifcopenshell.geom.settings()
         geom_settings.set("USE_PYTHON_OPENCASCADE", True)
 
-        for result in self.grouped_result:
-            whole_set=result.source_set|result.target_set
+        neutral_color=color = Quantity_Color(0.5, 0.5, 0.5, Quantity_TOC_RGB)
+        source_set= set()
 
-            display=add_to_display_random_color(display,whole_set,geom_settings)
+        for clash in self.result:
+            display=add_to_display(display,clash.target,geom_settings,neutral_color)
+            source_set.add(clash.source)
 
-            # Display edges between centers of clashing pairs
-            for clash in result.result_group:
-                if hasattr(clash, 'source') and hasattr(clash, 'target'):
-                    center_source = get_entity_center(clash.source, geom_settings)
-                    center_target = get_entity_center(clash.target, geom_settings)
-                    display_edge(display, center_source, center_target)
+        dict_of_source_color={}
+        for source in source_set:
+            random_color=get_random_color()
+            dict_of_source_color[source]=random_color
+            display=add_to_display(display,source,geom_settings,random_color)
+
+
+
+        # Display edges between centers of clashing pairs
+        for clash in self.result:
+            center_source = get_entity_center(clash.source, geom_settings)
+            center_target = get_entity_center(clash.target, geom_settings)
+            display_edge(display, center_source, center_target,dict_of_source_color[clash.source])
 
 
         display.FitAll()
