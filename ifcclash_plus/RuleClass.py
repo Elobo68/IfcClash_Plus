@@ -748,20 +748,59 @@ class RuleCheckTwoObjects(RuleCheck):
         #Step Two, draw all target
         #Step Three, draw line between object, with the
 
+        # Imports for center calculation and edge display
+        from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_MakeEdge
+        from OCC.Core.Bnd import Bnd_Box
+        from OCC.Core.BRepBndLib import brepbndlib
+        from OCC.Core.gp import gp_Pnt
+
         def add_to_display_random_color(display,list_of_entity,geom_settings):
             for entity in list_of_entity:
                 shape=ifcopenshell.geom.create_shape(geom_settings,entity)
                 geom=shape.geometry
 
+                print(geom.DumpJson())
+
                 ais_shape=AIS_Shape(geom)
                 R=random.randrange(1,255,1)/256
                 V=random.randrange(1,255,1)/256
                 B=random.randrange(1,255,1)/256
-                color = Quantity_Color(R, V, B, Quantity_TOC_RGB)
+
+                Neutral=0.5
+                color = Quantity_Color(Neutral, Neutral, Neutral, Quantity_TOC_RGB)
                 ais_shape.SetColor(color)
                 ais_shape.SetTransparency(0.9)
                 display.Context.Display(ais_shape, True)
             return display
+
+        def get_entity_center(entity, geom_settings):
+            """Calculate the center of an IFC entity's bounding box"""
+            shape = ifcopenshell.geom.create_shape(geom_settings, entity)
+            geom = shape.geometry
+            
+            bbox = Bnd_Box()
+            brepbndlib.Add(geom, bbox)
+            
+            corner_min = bbox.CornerMin()
+            corner_max = bbox.CornerMax()
+            
+            center = gp_Pnt(
+                (corner_min.X() + corner_max.X()) / 2.0,
+                (corner_min.Y() + corner_max.Y()) / 2.0,
+                (corner_min.Z() + corner_max.Z()) / 2.0
+            )
+            return center
+
+        def display_edge(display, p1, p2):
+            """Display an edge between two gp_Pnt points"""
+            edge = BRepBuilderAPI_MakeEdge(p1, p2).Edge()
+            ais_edge = AIS_Shape(edge)
+            
+            edge_color = Quantity_Color(1.0, 0.0, 0.0, Quantity_TOC_RGB)
+            ais_edge.SetColor(edge_color)
+            ais_edge.SetTransparency(0.0)
+            
+            display.Context.Display(ais_edge, True)
 
         display, start_display, add_menu, add_function = init_display()
 
@@ -775,6 +814,14 @@ class RuleCheckTwoObjects(RuleCheck):
             whole_set=result.source_set|result.target_set
 
             display=add_to_display_random_color(display,whole_set,geom_settings)
+
+            # Display edges between centers of clashing pairs
+            for clash in result.result_group:
+                if hasattr(clash, 'source') and hasattr(clash, 'target'):
+                    center_source = get_entity_center(clash.source, geom_settings)
+                    center_target = get_entity_center(clash.target, geom_settings)
+                    display_edge(display, center_source, center_target)
+
 
         display.FitAll()
         start_display()
