@@ -6,23 +6,13 @@ including loading IFC files, adding rules, executing checks, and managing result
 """
 
 import unittest
-import os
-import tempfile
-from pathlib import Path
+import ifcopenshell
 import sys
-
 sys.path.insert(0, './ifcclash_plus')
-
-from RuleClass import RuleFile, SelectFacet
-from Rules import (
-    Collision,
-    Intersection,
-    Volume,
-    Area,
-    OBB_Above,
-    OBB_Below,
-)
+from Rules import  Intersection, Above,Below ,OBB_Above,Clearance,Collision,OBB_Below, AngleBetween,Volume
+from RuleClass import SelectFacet,RuleFile,ClashResultOneObject,ClashResultTwoObjects,RuleFolder
 from ifctester import ids
+import os
 
 
 class TestRuleFileBasic(unittest.TestCase):
@@ -41,45 +31,11 @@ class TestRuleFileBasic(unittest.TestCase):
                 self.test_ifc_path = path
                 break
         
-        if self.test_ifc_path is None:
-            # Create a temporary minimal IFC file for testing
-            self.test_ifc_path = self._create_temp_ifc()
 
     def tearDown(self):
         """Clean up test fixtures."""
         if hasattr(self, '_temp_ifc_file') and self._temp_ifc_file:
             os.remove(self._temp_ifc_file)
-
-    def _create_temp_ifc(self):
-        """Create a temporary IFC file for testing."""
-        import ifcopenshell
-        from ifcopenshell.api import run
-        
-        temp_file = tempfile.NamedTemporaryFile(suffix='.ifc', delete=False)
-        temp_file.close()
-        self._temp_ifc_file = temp_file.name
-        
-        # Create a minimal IFC file
-        file = ifcopenshell.file(schema_identifiers=['IFC4'])
-        owner_history = run("owner.history.add_owner_history", file)
-        
-        # Add a simple project
-        project = run("root.create_entity", file, ifc_class="IfcProject", name="Test Project")
-        
-        # Add a simple site
-        site = run("root.create_entity", file, ifc_class="IfcSite", name="Test Site")
-        
-        # Add a simple building
-        building = run("root.create_entity", file, ifc_class="IfcBuilding", name="Test Building")
-        
-        # Add a simple storey
-        storey = run("root.create_entity", file, ifc_class="IfcBuildingStorey", name="Test Storey")
-        
-        # Add a simple wall
-        wall = run("root.create_entity", file, ifc_class="IfcWall", name="Test Wall")
-        
-        file.write(temp_file.name)
-        return temp_file.name
 
     def test_RuleFile_initialization(self):
         """Test RuleFile can be initialized."""
@@ -89,11 +45,6 @@ class TestRuleFileBasic(unittest.TestCase):
         self.assertEqual(rule_file.list_ifc_file, [])
         self.assertEqual(rule_file.contains, [])
 
-    def test_RuleFile_list_ifc_path(self):
-        """Test RuleFile can store IFC file paths."""
-        rule_file = RuleFile()
-        rule_file.list_ifc_path = [self.test_ifc_path]
-        self.assertEqual(rule_file.list_ifc_path, [self.test_ifc_path])
 
     def test_RuleFile_load_file(self):
         """Test RuleFile can load IFC files."""
@@ -107,22 +58,40 @@ class TestRuleFileBasic(unittest.TestCase):
     def test_RuleFile_update_file_info(self):
         """Test RuleFile can update file info in contained rules."""
         rule_file = RuleFile()
-        rule_file.list_ifc_path = [self.test_ifc_path]
+        possible_paths = [
+            "/home/jocelin/Documents/05 - Programmation/IfcClash_Plus/Ifc_Model/Ifc2x3_Duplex_Architecture.ifc",
+            "/home/jocelin/Documents/05 - Programmation/IfcClash_Plus/Ifc_Model/Ifc2x3_Duplex_MEP.ifc",
+        ]
+        rule_file.list_ifc_path=possible_paths
+
+
         rule_file.load_file()
         
         # Create a SelectFacet
         from ifctester.facet import Facet, Entity
         
         # Create a simple select
-        from ifcclash_plus.Rules import Select
-        select_source = Select()
-        select_source.list_ifc_path = [self.test_ifc_path]
-        
-        rule_file.contains = []
+        from ifcclash_plus.Rules import Collision
+
+        first_facet = ids.Entity(name="IFCWALLSTANDARDCASE")
+        first_select = SelectFacet()
+        first_select.applicability = [first_facet]
+
+        second_facet = ids.Entity(name="IFCSLAB")
+        second_select = SelectFacet()
+        second_select.applicability = [second_facet]
+
+        rule_collision=Collision(first_select,second_select)
+                
+        rule_file.contains = [rule_collision]
         rule_file.update_file_info()
-        
-        # Should not raise an error
-        self.assertEqual(len(rule_file.list_ifc_file), 1)
+
+
+        for rule in rule_file.contains:
+            self.assertEqual(len(rule.select_source.list_ifc_file), 2)
+            self.assertEqual(len(rule.select_target.list_ifc_file), 2)
+            self.assertEqual(len(rule.select_source.list_ifc_path), 2)
+            self.assertEqual(len(rule.select_target.list_ifc_path), 2)
 
 
 class TestRuleFileWithRules(unittest.TestCase):
@@ -132,95 +101,128 @@ class TestRuleFileWithRules(unittest.TestCase):
         """Set up test fixtures."""
         self.test_ifc_path = None
         possible_paths = [
-            "/home/jocelin/Documents/05 - Programmation/IfcClash_Plus/Ifc_Model/Ifc2x3_Duplex_Architecture_with_suzanne.ifc",
+            "/home/jocelin/Documents/05 - Programmation/IfcClash_Plus/Ifc_Model/Ifc2x3_Duplex_Architecture.ifc",
             "/home/jocelin/Documents/05 - Programmation/IfcClash_Plus/Ifc_Model/Ifc2x3_Duplex_MEP.ifc",
         ]
-        for path in possible_paths:
-            if os.path.exists(path):
-                self.test_ifc_path = path
-                break
-        
-        if self.test_ifc_path is None:
-            self.skipTest("No IFC file found for testing")
 
-    def test_RuleFile_with_OneObjectRule(self):
-        """Test RuleFile can run one object rules."""
-        rule_file = RuleFile()
-        rule_file.list_ifc_path = [self.test_ifc_path]
-        
-        # Create a Volume rule
-        from ifcclash_plus.Rules import Select
-        select = Select()
-        volume_rule = Volume(source=select, min_volume=0.0, max_volume=1000.0)
-        
-        rule_file.contains = [volume_rule]
-        
-        # This should load files and run the rule
-        # Note: We can't fully test the run without a valid IFC with geometry
-        rule_file.load_file()
-        rule_file.update_file_info()
-        
-        self.assertEqual(len(rule_file.list_ifc_file), 1)
+        self.test_ifc_path=possible_paths
 
-    def test_RuleFile_with_TwoObjectsRule(self):
-        """Test RuleFile can run two objects rules."""
-        rule_file = RuleFile()
-        rule_file.list_ifc_path = [self.test_ifc_path]
-        
-        # Create a Collision rule
-        from ifcclash_plus.Rules import Select
-        select_source = Select()
-        select_target = Select()
-        collision_rule = Collision(source=select_source, target=select_target, allow_touching=False)
-        
-        rule_file.contains = [collision_rule]
-        
-        rule_file.load_file()
-        rule_file.update_file_info()
-        
-        self.assertEqual(len(rule_file.list_ifc_file), 1)
 
     def test_RuleFile_with_multiple_rules(self):
         """Test RuleFile can handle multiple rules."""
         rule_file = RuleFile()
-        rule_file.list_ifc_path = [self.test_ifc_path]
-        
-        from ifcclash_plus.Rules import Select
+        rule_file.list_ifc_path = self.test_ifc_path
         
         # Create multiple rules
-        select1 = Select()
-        select2 = Select()
-        rule1 = Volume(source=select1, min_volume=0.0, max_volume=1000.0)
-        rule2 = Collision(source=select1, target=select2, allow_touching=False)
+        first_facet = ids.Entity(name="IFCWALLSTANDARDCASE")
+        first_select = SelectFacet()
+        first_select.applicability = [first_facet]
+
+        second_facet = ids.Entity(name="IFCDOOR")
+        second_select = SelectFacet()
+        second_select.applicability = [second_facet]
+
+        rule1 = Volume(source=first_select, volume_min=0.0, volume_max=1000.0)
+        rule2 = Collision(source=first_select, target=second_select, allow_touching=False)
         
         rule_file.contains = [rule1, rule2]
         
-        rule_file.load_file()
-        rule_file.update_file_info()
+        rule_file.run()
+
+
         
-        self.assertEqual(len(rule_file.contains), 2)
+        self.assertEqual(len(rule_file.contains[0].result), 56)
+        self.assertEqual(len(rule_file.contains[1].result), 7)
+
 
     def test_RuleFile_with_Folder(self):
         """Test RuleFile can contain folders."""
+
         rule_file = RuleFile()
-        rule_file.list_ifc_path = [self.test_ifc_path]
+        rule_file.list_ifc_path = self.test_ifc_path
+
+        folder=RuleFolder()
         
-        from ifcclash_plus.RuleClass import RuleFolder
-        
-        folder = RuleFolder()
-        from ifcclash_plus.Rules import Select
-        select = Select()
-        volume_rule = Volume(source=select, min_volume=0.0, max_volume=1000.0)
-        folder.contains = [volume_rule]
+        # Create multiple rules
+        first_facet = ids.Entity(name="IFCWALLSTANDARDCASE")
+        first_select = SelectFacet()
+        first_select.applicability = [first_facet]
+
+        second_facet = ids.Entity(name="IFCDOOR")
+        second_select = SelectFacet()
+        second_select.applicability = [second_facet]
+
+        rule1 = Volume(source=first_select, volume_min=0.0, volume_max=1000.0)
+        rule2 = Collision(source=first_select, target=second_select, allow_touching=False)
+
+        folder.contains=[rule1, rule2]
         
         rule_file.contains = [folder]
         
-        rule_file.load_file()
-        rule_file.update_file_info()
-        
-        self.assertEqual(len(rule_file.contains), 1)
-        self.assertIsInstance(rule_file.contains[0], RuleFolder)
+        rule_file.run()
 
+
+        
+        self.assertEqual(len(rule_file.contains[0].contains[0].result), 56)
+        self.assertEqual(len(rule_file.contains[0].contains[1].result), 7)
+
+    def test_RuleFile_with_Folder_activation_rule(self):
+        """Test RuleFile can contain folders."""
+
+        rule_file = RuleFile()
+        rule_file.list_ifc_path = self.test_ifc_path
+
+        folder=RuleFolder()
+        
+        # Create multiple rules
+        first_facet = ids.Entity(name="IFCWALLSTANDARDCASE")
+        first_select = SelectFacet()
+        first_select.applicability = [first_facet]
+
+        second_facet = ids.Entity(name="IFCDOOR")
+        second_select = SelectFacet()
+        second_select.applicability = [second_facet]
+
+        rule1 = Volume(source=first_select, volume_min=0.0, volume_max=1000.0)
+        rule2 = Collision(source=first_select, target=second_select, allow_touching=False)
+
+        folder.contains=[rule2]
+        folder.activation_rule=rule1
+        
+        rule_file.contains = [folder]
+        
+        rule_file.run()
+
+        self.assertEqual(len(rule_file.contains[0].contains[0].result), 7)
+
+    def test_RuleFile_with_Folder_activation_facet(self):
+        """Test RuleFile can contain folders."""
+
+        rule_file = RuleFile()
+        rule_file.list_ifc_path = self.test_ifc_path
+
+        folder=RuleFolder()
+        
+        # Create multiple rules
+        first_facet = ids.Entity(name="IFCWALLSTANDARDCASE")
+        first_select = SelectFacet()
+        first_select.applicability = [first_facet]
+
+        second_facet = ids.Entity(name="IFCDOOR")
+        second_select = SelectFacet()
+        second_select.applicability = [second_facet]
+
+        rule1 = Volume(source=first_select, volume_min=0.0, volume_max=1000.0)
+        rule2 = Collision(source=first_select, target=second_select, allow_touching=False)
+
+        folder.contains=[rule2]
+        folder.activation_rule=first_select
+        
+        rule_file.contains = [folder]
+        
+        rule_file.run()
+
+        self.assertEqual(len(rule_file.contains[0].contains[0].result), 7)
 
 class TestRuleFileProperties(unittest.TestCase):
     """Test RuleFile properties and attributes."""

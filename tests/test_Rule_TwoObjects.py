@@ -359,7 +359,7 @@ class TestRules(unittest.TestCase):
             self.assertIsInstance(result, ClashResultTwoObjects)
 
         # Should find some walls and doors that are parrallels to that one walls.
-        #self.assertEqual(len(angle_between_rule.result), 6)
+        self.assertEqual(len(angle_between_rule.result), 6)
         
 
 

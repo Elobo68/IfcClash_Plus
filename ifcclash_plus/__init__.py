@@ -3,7 +3,7 @@
 
 # Expose main modules for easy importing
 from .Rules import (
-    Volume, Area, TopSurface, Intersection, Clearance, Above, 
+    Volume, Area,  Intersection, Clearance, Above, 
     OBB_Above, Ray_Check
 )
 from .RuleClass import SelectFacet, SelectRule, RuleFile
