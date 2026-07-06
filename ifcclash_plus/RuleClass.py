@@ -73,7 +73,7 @@ class RuleFolder:
         self.contains: list = []  # Union of folder or Rule
 
     def check_Activation_Rule(self):
-        #@todo do the activation rule
+
         if self.activation_rule is None:
             return True
         if type(self.activation_rule) is SelectFacet:

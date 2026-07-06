@@ -1035,7 +1035,6 @@ class Below(RuleCheckTwoObjects):
         self.geom_settings.set(self.geom_settings.USE_PYTHON_OPENCASCADE, True)
 
     def run(self, state="Final"):
-        #@todo Finish converting Above into Below Rule
         self.tree = ifcopenshell.geom.tree()
         self.select_source.run()
         self.select_target.run()
